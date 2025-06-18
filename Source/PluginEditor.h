@@ -28,6 +28,14 @@ private:
     // This reference is provided as a quick way for your editor to
     // access the processor object that created it.
     ReverberationMachineAudioProcessor& audioProcessor;
+    
+    juce::FontOptions fontOptions;
+    juce::Label titleLabel;
+    
+    juce::Slider volKnob, gainKnob, verbKnob;
+    juce::Label volLabel, gainLabel, verbLabel;
+    
+    void layoutKnobWithLabel(juce::Slider&, juce::Label&, const juce::String&, juce::Rectangle<int>);
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ReverberationMachineAudioProcessorEditor)
 };

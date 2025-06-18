@@ -11,11 +11,25 @@
 
 //==============================================================================
 ReverberationMachineAudioProcessorEditor::ReverberationMachineAudioProcessorEditor (ReverberationMachineAudioProcessor& p)
-    : AudioProcessorEditor (&p), audioProcessor (p)
+    : AudioProcessorEditor (&p), audioProcessor (p),
+fontOptions("Helvetica Neue", 85.0f, juce::Font::bold)
 {
-    // Make sure that before the constructor has finished, you've set the
-    // editor's size to whatever you need it to be.
-    setSize (400, 300);
+    setSize (620, 600);
+    
+    addAndMakeVisible(titleLabel);
+    titleLabel.setText("GRITTTTTIMER", juce::dontSendNotification);
+    titleLabel.setJustificationType(juce::Justification::centred);
+    titleLabel.setFont(fontOptions);
+    titleLabel.setColour(juce::Label::textColourId, juce::Colour::fromRGB(200, 200, 190));
+    titleLabel.setColour(juce::Label::backgroundColourId, juce::Colours::transparentBlack);
+    
+    addAndMakeVisible(volKnob);
+    addAndMakeVisible(gainKnob);
+    addAndMakeVisible(verbKnob);
+    
+    addAndMakeVisible(volLabel);
+    addAndMakeVisible(gainLabel);
+    addAndMakeVisible(verbLabel);
 }
 
 ReverberationMachineAudioProcessorEditor::~ReverberationMachineAudioProcessorEditor()
@@ -25,16 +39,59 @@ ReverberationMachineAudioProcessorEditor::~ReverberationMachineAudioProcessorEdi
 //==============================================================================
 void ReverberationMachineAudioProcessorEditor::paint (juce::Graphics& g)
 {
-    // (Our component is opaque, so we must completely fill the background with a solid colour)
-    g.fillAll (getLookAndFeel().findColour (juce::ResizableWindow::backgroundColourId));
-
-    g.setColour (juce::Colours::white);
-    g.setFont (juce::FontOptions (15.0f));
-    g.drawFittedText ("Hello World!", getLocalBounds(), juce::Justification::centred, 1);
+    using namespace juce;
+    
+    // Background
+    g.fillAll(Colour::fromRGB(20, 20, 20));
+    
+    // Border
+    g.setColour(Colour::fromRGB(200, 200, 190));
+    g.drawRoundedRectangle(getLocalBounds().toFloat().reduced(8), 15.f, 4.f);
 }
 
 void ReverberationMachineAudioProcessorEditor::resized()
 {
-    // This is generally where you'll want to lay out the positions of any
-    // subcomponents in your editor..
+    // Layout
+    auto bounds = getLocalBounds().reduced(10);
+    const int TOTALROWS = 4;
+    auto rowHeight = bounds.getHeight() / TOTALROWS;
+    
+    auto row1 = bounds.removeFromTop(rowHeight);
+    auto row2 = bounds.removeFromTop(rowHeight);
+    auto row3 = bounds.removeFromTop(rowHeight);
+    {
+        auto knobWidth = row3.getWidth() / 3;
+        
+        auto volArea = row3.removeFromLeft(knobWidth);
+        auto gainArea = row3.removeFromLeft(knobWidth);
+        auto verbArea = row3;
+        
+        layoutKnobWithLabel(volKnob, volLabel, "VOL", volArea);
+        layoutKnobWithLabel(gainKnob, gainLabel, "GAIN", gainArea);
+        layoutKnobWithLabel(verbKnob, verbLabel, "VERB", verbArea);
+    }
+    
+    auto row4 = bounds;
+    titleLabel.setBounds(row4);
+}
+
+void ReverberationMachineAudioProcessorEditor::layoutKnobWithLabel(juce::Slider& knob,
+                                                                   juce::Label& label,
+                                                                   const juce::String& text,
+                                                                   juce::Rectangle<int> area)
+{
+    int knobHeight = area.getHeight() * 0.75f;
+    int labelHeight = area.getHeight() - knobHeight;
+    
+    knob.setSliderStyle(juce::Slider::Rotary);
+    knob.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
+
+    knob.setBounds(area.removeFromTop(knobHeight));
+    
+    juce::FontOptions labelFont("Helvetica Neue", 28.0f, juce::Font::bold);
+    label.setFont(labelFont);
+    label.setText(text, juce::dontSendNotification);
+    label.setJustificationType(juce::Justification::centredTop);
+    label.setBounds(area.withHeight(labelHeight));
+    label.setColour(juce::Label::textColourId, juce::Colour::fromRGB(200, 200, 190));
 }
