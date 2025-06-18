@@ -86,6 +86,7 @@ void ReverberationMachineAudioProcessorEditor::layoutKnobWithLabel(juce::Slider&
     knob.setSliderStyle(juce::Slider::Rotary);
     knob.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
     knob.setSliderStyle(juce::Slider::SliderStyle::RotaryHorizontalVerticalDrag);
+    knob.setLookAndFeel(&customLookAndFeel);
 
     knob.setBounds(area.removeFromTop(knobHeight));
     
