@@ -159,6 +159,53 @@ private:
     }
 };
 
+class MeterComponent : public juce::Component
+{
+public:
+    MeterComponent(const juce::String& labelText)
+    {
+        juce::FontOptions labelFont("Helvetica Neue", 24.0f, juce::Font::bold);
+        label.setText(labelText, juce::dontSendNotification);
+        label.setJustificationType(juce::Justification::centredLeft);
+        label.setColour(juce::Label::textColourId, juce::Colour::fromRGB(200, 200, 190));
+        label.setFont(labelFont);
+        addAndMakeVisible(label);
+        addAndMakeVisible(meterBar);
+    }
+    
+    void setLevel(float newLevel)
+    {
+        level = juce::jlimit(0.0f, 1.0f, newLevel);
+        repaint();
+    }
+    
+    void resized() override
+    {
+        auto bounds = getLocalBounds();
+        auto labelWidth = 60;
+        
+        label.setBounds(bounds.removeFromLeft(labelWidth));
+        meterBar.setBounds(bounds);
+    }
+    
+    void paintOverChildren(juce::Graphics& g) override
+    {
+        auto bounds = meterBar.getBounds().toFloat().reduced(2.0f);
+        auto meterWidth = bounds.getWidth() * level;
+        
+        g.setColour(juce::Colour::fromRGB(200, 200, 190));
+        g.fillRect(bounds.removeFromLeft(meterWidth));
+        
+        g.setColour(juce::Colour::fromRGB(200, 200, 190)); // grey border
+        g.drawRect(bounds.toNearestInt(), 1);
+    }
+    
+private:
+    juce::Label label;
+    juce::Component meterBar;
+    float level = 0.0f;
+};
+
 class ReverberationMachineAudioProcessorEditor  : public juce::AudioProcessorEditor
 {
 public:
@@ -187,6 +234,9 @@ private:
     CustomToggleLookAndFeel customToggleLookAndFeel;
     
     std::unique_ptr<VisualiserComponent> visualiser;
+    
+    MeterComponent inputMeter {"INPUT"};
+    MeterComponent outputMeter {"OUTPUT"};
     
     void layoutKnobWithLabel(juce::Slider&, juce::Label&, const juce::String&, juce::Rectangle<int>);
 

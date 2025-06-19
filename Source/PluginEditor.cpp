@@ -47,6 +47,9 @@ fontOptions("Helvetica Neue", 85.0f, juce::Font::bold)
     darkLightLabel.setText("DARK / LIGHT", juce::dontSendNotification);
     darkLightLabel.setJustificationType(juce::Justification::centredTop);
     darkLightLabel.setColour(juce::Label::textColourId, juce::Colour::fromRGB(200, 200, 190));
+    
+    addAndMakeVisible(inputMeter);
+    addAndMakeVisible(outputMeter);
 }
 
 ReverberationMachineAudioProcessorEditor::~ReverberationMachineAudioProcessorEditor()
@@ -79,14 +82,11 @@ void ReverberationMachineAudioProcessorEditor::resized()
     
     auto row1 = bounds.removeFromTop(rowHeight);
     {
-        auto meterArea = row1;
-        auto meterWidth = meterArea.getWidth() / 2;
-        
-        auto inputArea = meterArea.removeFromLeft(meterWidth);
-        
-        
-        
-        auto outputArea = meterArea;
+//        auto meterArea = row1;
+//        auto halfWidth = meterArea.getWidth() / 2;
+//        
+//        inputMeter.setBounds(row1.removeFromLeft(halfWidth));
+//        outputMeter.setBounds(row1);
     }
     
     auto row2 = bounds.removeFromTop(rowHeight);
