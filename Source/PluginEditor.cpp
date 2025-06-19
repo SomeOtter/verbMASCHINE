@@ -14,6 +14,9 @@ ReverberationMachineAudioProcessorEditor::ReverberationMachineAudioProcessorEdit
     : AudioProcessorEditor (&p), audioProcessor (p),
 fontOptions("Helvetica Neue", 85.0f, juce::Font::bold)
 {
+    using SliderAttachment = juce::AudioProcessorValueTreeState::SliderAttachment;
+    using ButtonAttachment = juce::AudioProcessorValueTreeState::ButtonAttachment;
+    
     visualiser = std::make_unique<VisualiserComponent>(
                                                        [this] { return gainKnob.getValue(); },
                                                        [this] { return verbKnob.getValue(); });
@@ -50,6 +53,10 @@ fontOptions("Helvetica Neue", 85.0f, juce::Font::bold)
     
     addAndMakeVisible(inputMeter);
     addAndMakeVisible(outputMeter);
+    
+    volAttachment = std::make_unique<SliderAttachment>(audioProcessor.apvts, "VOL", volKnob);
+    gainAttachment = std::make_unique<SliderAttachment>(audioProcessor.apvts, "GAIN", gainKnob);
+    verbAttachment = std::make_unique<SliderAttachment>(audioProcessor.apvts, "VERB", verbKnob);
 }
 
 ReverberationMachineAudioProcessorEditor::~ReverberationMachineAudioProcessorEditor()

@@ -10,6 +10,7 @@
 
 #include <JuceHeader.h>
 #include "PluginProcessor.h"
+#include <juce_audio_processors/juce_audio_processors.h>
 
 class CustomKnobLookAndFeel : public juce::LookAndFeel_V4
 {
@@ -110,8 +111,8 @@ public:
                                        localBounds.getWidth() - (padLeft + padRight),
                                        localBounds.getHeight());
         
-        float gain = juce::jlimit(0.0f, 1.0f, getGain() / 10);
-        float verb = juce::jlimit(0.0f, 1.0f, getVerb() / 10);
+        float gain = juce::jlimit(0.0f, 1.0f, getGain());
+        float verb = juce::jlimit(0.0f, 1.0f, getVerb());
 
         float baseWidth = bounds.getWidth();
         float maxHeight = bounds.getHeight() * 0.5f;
@@ -237,6 +238,11 @@ private:
     
     MeterComponent inputMeter {"INPUT"};
     MeterComponent outputMeter {"OUTPUT"};
+    
+    std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> volAttachment;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> gainAttachment;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> verbAttachment;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> darklightAttachment;
     
     void layoutKnobWithLabel(juce::Slider&, juce::Label&, const juce::String&, juce::Rectangle<int>);
 

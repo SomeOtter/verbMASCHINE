@@ -9,18 +9,31 @@
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
 
+juce::AudioProcessorValueTreeState::ParameterLayout ReverberationMachineAudioProcessor::createParameterLayout()
+{
+    std::vector<std::unique_ptr<juce::RangedAudioParameter>> params;
+    
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID("VOL", 1),
+        "VOL", juce::NormalisableRange<float>(-24.0, 24.0f, 0.1f), 0.0f));
+    
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID("GAIN", 1),
+        "GAIN", juce::NormalisableRange<float>(0.0f, 1.0f), 0.1f));
+    
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID("VERB", 1),
+        "VERB", juce::NormalisableRange<float>(0.0f, 1.0f), 0.5f));
+    
+    params.push_back(std::make_unique<juce::AudioParameterBool>(juce::ParameterID("DARK // LIGHT", 1),
+        "DARK // LIGHT", false));
+    
+    return {params.begin(), params.end()};
+}
+
 //==============================================================================
 ReverberationMachineAudioProcessor::ReverberationMachineAudioProcessor()
-#ifndef JucePlugin_PreferredChannelConfigurations
-     : AudioProcessor (BusesProperties()
-                     #if ! JucePlugin_IsMidiEffect
-                      #if ! JucePlugin_IsSynth
-                       .withInput  ("Input",  juce::AudioChannelSet::stereo(), true)
-                      #endif
-                       .withOutput ("Output", juce::AudioChannelSet::stereo(), true)
-                     #endif
-                       )
-#endif
+    : AudioProcessor (BusesProperties()
+                      .withInput ("Input", juce::AudioChannelSet::stereo(), true)
+                      .withOutput ("Output", juce::AudioChannelSet::stereo(), true)),
+      apvts(*this, nullptr, "PARAMETERS", createParameterLayout())
 {
 }
 

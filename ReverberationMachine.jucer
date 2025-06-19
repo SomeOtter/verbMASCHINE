@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<JUCERPROJECT id="Q4Z4Wv" name="GRITTTTTIMER" projectType="audioplug" useAppConfig="0"
-              addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1">
-  <MAINGROUP id="Qiatug" name="GRITTTTTIMER">
+<JUCERPROJECT id="Q4Z4Wv" name="ReverberationMachine" projectType="audioplug"
+              useAppConfig="0" addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1">
+  <MAINGROUP id="Qiatug" name="ReverberationMachine">
     <GROUP id="{6C654A1A-BCA7-00F4-A741-250B352C81EA}" name="Source">
       <FILE id="savPde" name="PluginProcessor.cpp" compile="1" resource="0"
             file="Source/PluginProcessor.cpp"/>
