@@ -160,10 +160,10 @@ private:
     }
 };
 
-class MeterComponent : public juce::Component
+class StereoMeterComponent : public juce::Component, private juce::Timer
 {
 public:
-    MeterComponent(const juce::String& labelText)
+    explicit StereoMeterComponent(const juce::String& labelText)
     {
         juce::FontOptions labelFont("Helvetica Neue", 24.0f, juce::Font::bold);
         label.setText(labelText, juce::dontSendNotification);
@@ -171,43 +171,58 @@ public:
         label.setColour(juce::Label::textColourId, juce::Colour::fromRGB(200, 200, 190));
         label.setFont(labelFont);
         addAndMakeVisible(label);
-        addAndMakeVisible(meterBar);
+        
+        startTimerHz(30);
     }
     
-    void setLevel(float newLevel)
+    void setLevels(float left, float right)
     {
-        level = juce::jlimit(0.0f, 1.0f, newLevel);
+        leftLevel = juce::jlimit(0.0f, 1.0f, left);
+        rightLevel = juce::jlimit(0.0f, 1.0f, right);
         repaint();
     }
     
     void resized() override
     {
         auto bounds = getLocalBounds();
-        auto labelWidth = 60;
-        
-        label.setBounds(bounds.removeFromLeft(labelWidth));
-        meterBar.setBounds(bounds);
+        label.setBounds(bounds.removeFromLeft(60));
+        meterBounds = bounds.toFloat();
     }
     
-    void paintOverChildren(juce::Graphics& g) override
+    void paint(juce::Graphics& g) override
     {
-        auto bounds = meterBar.getBounds().toFloat().reduced(2.0f);
-        auto meterWidth = bounds.getWidth() * level;
-        
+        float gap = 6.0f;
+        float meterWidth = (meterBounds.getWidth() - gap) / 2.0f;
+        float meterHeight = meterBounds.getHeight() * 0.4f;
+        float meterY = meterBounds.getCentreY() - meterHeight / 2.0f;
+
+        juce::Rectangle<float> leftMeter(meterBounds.getX(), meterY, meterWidth, meterHeight);
+        juce::Rectangle<float> rightMeter(meterBounds.getX() + meterWidth + gap, meterY,
+                                                                meterWidth, meterHeight);
+
         g.setColour(juce::Colour::fromRGB(200, 200, 190));
-        g.fillRect(bounds.removeFromLeft(meterWidth));
-        
-        g.setColour(juce::Colour::fromRGB(200, 200, 190)); // grey border
-        g.drawRect(bounds.toNearestInt(), 1);
+        g.fillRect(leftMeter);
+        g.fillRect(rightMeter);
+
+        g.setColour(juce::Colours::limegreen);
+        g.fillRect(leftMeter.withWidth(leftMeter.getWidth() * leftLevel));
+        g.fillRect(rightMeter.withWidth(rightMeter.getWidth() * rightLevel));
     }
     
 private:
     juce::Label label;
-    juce::Component meterBar;
-    float level = 0.0f;
+    float leftLevel = 0.0;
+    float rightLevel = 0.0;
+    juce::Rectangle<float> meterBounds;
+    
+    void timerCallback() override
+    {
+        repaint();
+    }
 };
 
-class ReverberationMachineAudioProcessorEditor  : public juce::AudioProcessorEditor
+class ReverberationMachineAudioProcessorEditor  :   public juce::AudioProcessorEditor,
+                                                    private juce::Timer
 {
 public:
     ReverberationMachineAudioProcessorEditor (ReverberationMachineAudioProcessor&);
@@ -216,10 +231,14 @@ public:
     //==============================================================================
     void paint (juce::Graphics&) override;
     void resized() override;
+    
+    void timerCallback() override
+    {
+        inputMeter.setLevels(audioProcessor.inputLevelL.load(), audioProcessor.inputLevelR.load());
+        outputMeter.setLevels(audioProcessor.outputLevelL.load(), audioProcessor.outputLevelR.load());
+    }
 
 private:
-    // This reference is provided as a quick way for your editor to
-    // access the processor object that created it.
     ReverberationMachineAudioProcessor& audioProcessor;
     
     juce::FontOptions fontOptions;
@@ -236,8 +255,8 @@ private:
     
     std::unique_ptr<VisualiserComponent> visualiser;
     
-    MeterComponent inputMeter {"INPUT"};
-    MeterComponent outputMeter {"OUTPUT"};
+    StereoMeterComponent inputMeter {"INPUT"};
+    StereoMeterComponent outputMeter {"OUTPUT"};
     
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> volAttachment;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> gainAttachment;

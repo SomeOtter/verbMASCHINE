@@ -53,6 +53,7 @@ fontOptions("Helvetica Neue", 85.0f, juce::Font::bold)
     
     addAndMakeVisible(inputMeter);
     addAndMakeVisible(outputMeter);
+    startTimerHz(30);
     
     volAttachment = std::make_unique<SliderAttachment>(audioProcessor.apvts, "VOL", volKnob);
     gainAttachment = std::make_unique<SliderAttachment>(audioProcessor.apvts, "GAIN", gainKnob);
@@ -89,11 +90,11 @@ void ReverberationMachineAudioProcessorEditor::resized()
     
     auto row1 = bounds.removeFromTop(rowHeight);
     {
-//        auto meterArea = row1;
-//        auto halfWidth = meterArea.getWidth() / 2;
-//        
-//        inputMeter.setBounds(row1.removeFromLeft(halfWidth));
-//        outputMeter.setBounds(row1);
+        auto meterArea = row1;
+        auto halfWidth = meterArea.getWidth() / 2;
+        
+        inputMeter.setBounds(row1.removeFromLeft(halfWidth));
+        outputMeter.setBounds(row1);
     }
     
     auto row2 = bounds.removeFromTop(rowHeight);

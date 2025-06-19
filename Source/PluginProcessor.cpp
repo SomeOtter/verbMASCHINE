@@ -154,10 +154,19 @@ void ReverberationMachineAudioProcessor::processBlock (juce::AudioBuffer<float>&
     juce::ScopedNoDenormals noDenormals;
     auto totalNumInputChannels  = getTotalNumInputChannels();
     auto totalNumOutputChannels = getTotalNumOutputChannels();
+    
+    const int numSamples = buffer.getNumSamples();
 
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
-        buffer.clear (i, 0, buffer.getNumSamples());
+        buffer.clear (i, 0, numSamples);
+    
+    // Get input level for meters
+    float inL = buffer.getRMSLevel(0, 0, numSamples);
+    float inR = buffer.getNumChannels() > 1 ? buffer.getRMSLevel(1, 0, numSamples) : inL;
+    inputLevelL.store(inL);
+    inputLevelR.store(inR);
 
+    // Vol config
     auto volDb = apvts.getRawParameterValue("VOL")->load();
     targetGain = juce::Decibels::decibelsToGain(volDb);
 
@@ -169,6 +178,12 @@ void ReverberationMachineAudioProcessor::processBlock (juce::AudioBuffer<float>&
             channelData[i] *= targetGain;
         }
     }
+    
+    // Get output levels for meter
+    float outL = buffer.getRMSLevel(0, 0, numSamples);
+    float outR = buffer.getNumChannels() > 1 ? buffer.getRMSLevel(1, 0, numSamples) : outL;
+    outputLevelL.store(outL);
+    outputLevelR.store(outR);
 }
 
 //==============================================================================

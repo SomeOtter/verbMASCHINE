@@ -22,6 +22,11 @@ public:
     
     float targetGain = 1.0f;
     
+    std::atomic<float> inputLevelL {0.0f};
+    std::atomic<float> inputLevelR {0.0f};
+    std::atomic<float> outputLevelL {0.0f};
+    std::atomic<float> outputLevelR {0.0f};
+    
     //==============================================================================
     ReverberationMachineAudioProcessor();
     ~ReverberationMachineAudioProcessor() override;
