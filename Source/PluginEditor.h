@@ -163,60 +163,63 @@ private:
 class StereoMeterComponent : public juce::Component, private juce::Timer
 {
 public:
-    explicit StereoMeterComponent(const juce::String& labelText)
+    StereoMeterComponent()
     {
-        juce::FontOptions labelFont("Helvetica Neue", 24.0f, juce::Font::bold);
-        label.setText(labelText, juce::dontSendNotification);
-        label.setJustificationType(juce::Justification::centredLeft);
-        label.setColour(juce::Label::textColourId, juce::Colour::fromRGB(200, 200, 190));
-        label.setFont(labelFont);
-        addAndMakeVisible(label);
-        
         startTimerHz(30);
     }
     
-    void setLevels(float left, float right)
+    void setLevel(float level)
     {
-        leftLevel = juce::jlimit(0.0f, 1.0f, left);
-        rightLevel = juce::jlimit(0.0f, 1.0f, right);
+        levelValue = juce::jlimit(0.0f, 1.0f, level);
+        
+        const float clipThreshold = 0.99f;
+        if(levelValue >= clipThreshold)
+        {
+            clipIndicatorOpacity = 1.0f;
+        }
+        
         repaint();
     }
     
     void resized() override
     {
-        auto bounds = getLocalBounds();
-        label.setBounds(bounds.removeFromLeft(60));
-        meterBounds = bounds.toFloat();
+        meterBounds = getLocalBounds().toFloat();
     }
     
     void paint(juce::Graphics& g) override
     {
-        float gap = 6.0f;
-        float meterWidth = (meterBounds.getWidth() - gap) / 2.0f;
-        float meterHeight = meterBounds.getHeight() * 0.4f;
-        float meterY = meterBounds.getCentreY() - meterHeight / 2.0f;
-
-        juce::Rectangle<float> leftMeter(meterBounds.getX(), meterY, meterWidth, meterHeight);
-        juce::Rectangle<float> rightMeter(meterBounds.getX() + meterWidth + gap, meterY,
-                                                                meterWidth, meterHeight);
+        auto bounds = getLocalBounds().toFloat();
 
         g.setColour(juce::Colour::fromRGB(200, 200, 190));
-        g.fillRect(leftMeter);
-        g.fillRect(rightMeter);
+        g.fillRect(bounds);
 
-        g.setColour(juce::Colours::limegreen);
-        g.fillRect(leftMeter.withWidth(leftMeter.getWidth() * leftLevel));
-        g.fillRect(rightMeter.withWidth(rightMeter.getWidth() * rightLevel));
+        float fillWidth = bounds.getWidth() * levelValue;
+        g.setColour(juce::Colour::fromRGB(0, 205, 0));
+        g.fillRect(bounds.withWidth(fillWidth));
+        
+        if(clipIndicatorOpacity > 0.0f)
+        {
+            float clipWidth = levelValue * 20.f;
+            g.setColour(juce::Colours::red);
+            g.fillRect(bounds.withX(bounds.getRight() - clipWidth).withWidth(clipWidth));
+        }
     }
     
 private:
-    juce::Label label;
-    float leftLevel = 0.0;
-    float rightLevel = 0.0;
+    float levelValue = 0.0f;
     juce::Rectangle<float> meterBounds;
+    
+    float clipIndicatorOpacity = 0.0f;
+    const float clipFadeOutSpeed = 0.02f;
     
     void timerCallback() override
     {
+        if(clipIndicatorOpacity > 0.0f)
+        {
+            clipIndicatorOpacity -= clipFadeOutSpeed;
+            if(clipIndicatorOpacity < 0.0f)
+                clipIndicatorOpacity = 0.0f;
+        }
         repaint();
     }
 };
@@ -234,8 +237,10 @@ public:
     
     void timerCallback() override
     {
-        inputMeter.setLevels(audioProcessor.inputLevelL.load(), audioProcessor.inputLevelR.load());
-        outputMeter.setLevels(audioProcessor.outputLevelL.load(), audioProcessor.outputLevelR.load());
+        inputMeterL.setLevel(audioProcessor.inputLevelL.load());
+        inputMeterR.setLevel(audioProcessor.inputLevelR.load());
+        outputMeterL.setLevel(audioProcessor.outputLevelL.load());
+        outputMeterR.setLevel(audioProcessor.outputLevelR.load());
     }
 
 private:
@@ -255,8 +260,11 @@ private:
     
     std::unique_ptr<VisualiserComponent> visualiser;
     
-    StereoMeterComponent inputMeter {"INPUT"};
-    StereoMeterComponent outputMeter {"OUTPUT"};
+    juce::Rectangle<int> row1Fill;
+    juce::Label inputLabel, outputLabel;
+    
+    StereoMeterComponent inputMeterL, inputMeterR;
+    StereoMeterComponent outputMeterL, outputMeterR;
     
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> volAttachment;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> gainAttachment;

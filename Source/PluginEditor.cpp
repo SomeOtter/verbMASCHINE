@@ -51,8 +51,23 @@ fontOptions("Helvetica Neue", 85.0f, juce::Font::bold)
     darkLightLabel.setJustificationType(juce::Justification::centredTop);
     darkLightLabel.setColour(juce::Label::textColourId, juce::Colour::fromRGB(200, 200, 190));
     
-    addAndMakeVisible(inputMeter);
-    addAndMakeVisible(outputMeter);
+    juce::FontOptions meterFont("Helvetica Neue", 28.0f, juce::Font::bold);
+    addAndMakeVisible(inputLabel);
+    inputLabel.setFont(meterFont);
+    inputLabel.setText("INPUT", juce::dontSendNotification);
+    inputLabel.setJustificationType(juce::Justification::centredLeft);
+    inputLabel.setColour(juce::Label::textColourId, juce::Colour::fromRGB(200, 200, 190));
+    
+    addAndMakeVisible(outputLabel);
+    outputLabel.setFont(meterFont);
+    outputLabel.setText("OUTPUT", juce::dontSendNotification);
+    outputLabel.setJustificationType(juce::Justification::centredLeft);
+    outputLabel.setColour(juce::Label::textColourId, juce::Colour::fromRGB(200, 200, 190));
+    
+    addAndMakeVisible(inputMeterL);
+    addAndMakeVisible(inputMeterR);
+    addAndMakeVisible(outputMeterL);
+    addAndMakeVisible(outputMeterR);
     startTimerHz(30);
     
     volAttachment = std::make_unique<SliderAttachment>(audioProcessor.apvts, "VOL", volKnob);
@@ -79,23 +94,67 @@ void ReverberationMachineAudioProcessorEditor::paint (juce::Graphics& g)
     // Border
     g.setColour(Colour::fromRGB(200, 200, 190));
     g.drawRoundedRectangle(getLocalBounds().toFloat().reduced(8), 15.f, 4.f);
+    
+    // Meter area
+    g.setColour(juce::Colour::fromRGBA(200, 200, 190, 10));
+    g.fillRoundedRectangle(row1Fill.toFloat(), 15.f);
 }
 
 void ReverberationMachineAudioProcessorEditor::resized()
 {
-    // Layout
-    auto bounds = getLocalBounds().reduced(10);
-    const int TOTALROWS = 4;
-    auto rowHeight = bounds.getHeight() / TOTALROWS;
-    
+    auto bounds = getLocalBounds().reduced(15);
+    const int totalRows = 4;
+    auto rowHeight = bounds.getHeight() / totalRows;
+
     auto row1 = bounds.removeFromTop(rowHeight);
+    row1Fill = row1.reduced(10);
+
+    const int padding = 25;
+    const int meterWidth = 140;
+    const int meterHeight = 5;
+    const int meterSpacing = 8;
+
+    // Calculate text widths using GlyphArrangement for precision
+    auto getTextWidth = [](const juce::String& text, const juce::Font& font) -> int {
+        juce::GlyphArrangement glyphs;
+        glyphs.addLineOfText(font, text, 0.0f, 0.0f);
+        return static_cast<int>(glyphs.getBoundingBox(0, glyphs.getNumGlyphs(), true).getWidth()) + 8; // +gap
+    };
+
+    const int inputTextWidth  = getTextWidth("INPUT", inputLabel.getFont());
+    const int outputTextWidth = getTextWidth("OUTPUT", outputLabel.getFont());
+    const int labelWidth = juce::jmax(inputTextWidth, outputTextWidth + 30);
+    const int gapBetweenLabelAndMeter = 10;
+
+    int y = row1.getCentreY() - ((2 * meterHeight + meterSpacing) / 2);
+
+    // Input Half
     {
-        auto meterArea = row1;
-        auto halfWidth = meterArea.getWidth() / 2;
-        
-        inputMeter.setBounds(row1.removeFromLeft(halfWidth));
-        outputMeter.setBounds(row1);
+        auto inputArea = row1.removeFromLeft(row1.getWidth() / 2).reduced(padding, 0);
+
+        juce::Rectangle<int> labelBounds = inputArea.removeFromLeft(labelWidth);
+        inputLabel.setBounds(labelBounds.withY(y).withHeight(2 * meterHeight + meterSpacing));
+        inputLabel.setJustificationType(juce::Justification::centredLeft);
+
+        // Meter sits immediately to the right of label
+        auto meterX = labelBounds.getRight() + gapBetweenLabelAndMeter;
+        inputMeterL.setBounds(meterX, y, meterWidth, meterHeight);
+        inputMeterR.setBounds(meterX, y + meterHeight + meterSpacing, meterWidth, meterHeight);
     }
+
+    // Output Half
+    {
+        auto outputArea = row1.reduced(padding, 0);  // Remaining right half
+
+        juce::Rectangle<int> labelBounds = outputArea.removeFromLeft(labelWidth);
+        outputLabel.setBounds(labelBounds.withY(y).withHeight(2 * meterHeight + meterSpacing));
+        outputLabel.setJustificationType(juce::Justification::centredLeft);
+
+        auto meterX = labelBounds.getRight() + gapBetweenLabelAndMeter;
+        outputMeterL.setBounds(meterX, y, meterWidth, meterHeight);
+        outputMeterR.setBounds(meterX, y + meterHeight + meterSpacing, meterWidth, meterHeight);
+    }
+
     
     auto row2 = bounds.removeFromTop(rowHeight);
     {
