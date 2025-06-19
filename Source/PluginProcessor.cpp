@@ -11,21 +11,28 @@
 
 juce::AudioProcessorValueTreeState::ParameterLayout ReverberationMachineAudioProcessor::createParameterLayout()
 {
-    std::vector<std::unique_ptr<juce::RangedAudioParameter>> params;
+    std::vector<std::unique_ptr<juce::RangedAudioParameter>> layout;
     
-    params.push_back(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID("VOL", 1),
-        "VOL", juce::NormalisableRange<float>(-24.0, 24.0f, 0.1f), 0.0f));
+    float volMinValue = -48.0f;
+    float volMaxValue = 12.0f;
+    float volDefaultValue = 0.0f;
     
-    params.push_back(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID("GAIN", 1),
+    float volSkewFactor =   std::log(0.5f) /
+                            std::log((volDefaultValue - volMinValue) / (volMaxValue - volMinValue));
+    
+    layout.push_back(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID("VOL", 1),
+        "VOL", juce::NormalisableRange<float>(-48.0, 12.0f, 0.1f, volSkewFactor), 0.0f));
+    
+    layout.push_back(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID("GAIN", 1),
         "GAIN", juce::NormalisableRange<float>(0.0f, 1.0f), 0.1f));
     
-    params.push_back(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID("VERB", 1),
+    layout.push_back(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID("VERB", 1),
         "VERB", juce::NormalisableRange<float>(0.0f, 1.0f), 0.5f));
     
-    params.push_back(std::make_unique<juce::AudioParameterBool>(juce::ParameterID("DARK // LIGHT", 1),
+    layout.push_back(std::make_unique<juce::AudioParameterBool>(juce::ParameterID("DARK // LIGHT", 1),
         "DARK // LIGHT", false));
     
-    return {params.begin(), params.end()};
+    return {layout.begin(), layout.end()};
 }
 
 //==============================================================================
@@ -148,26 +155,19 @@ void ReverberationMachineAudioProcessor::processBlock (juce::AudioBuffer<float>&
     auto totalNumInputChannels  = getTotalNumInputChannels();
     auto totalNumOutputChannels = getTotalNumOutputChannels();
 
-    // In case we have more outputs than inputs, this code clears any output
-    // channels that didn't contain input data, (because these aren't
-    // guaranteed to be empty - they may contain garbage).
-    // This is here to avoid people getting screaming feedback
-    // when they first compile a plugin, but obviously you don't need to keep
-    // this code if your algorithm always overwrites all the output channels.
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
         buffer.clear (i, 0, buffer.getNumSamples());
 
-    // This is the place where you'd normally do the guts of your plugin's
-    // audio processing...
-    // Make sure to reset the state if your inner loop is processing
-    // the samples and the outer loop is handling the channels.
-    // Alternatively, you can process the samples with the channels
-    // interleaved by keeping the same state.
-    for (int channel = 0; channel < totalNumInputChannels; ++channel)
-    {
-        auto* channelData = buffer.getWritePointer (channel);
+    auto volDb = apvts.getRawParameterValue("VOL")->load();
+    targetGain = juce::Decibels::decibelsToGain(volDb);
 
-        // ..do something to the data...
+    for (int channel = 0; channel < buffer.getNumChannels(); ++channel)
+    {
+        auto* channelData = buffer.getWritePointer(channel);
+        for (int i = 0; i < buffer.getNumSamples(); ++i)
+        {
+            channelData[i] *= targetGain;
+        }
     }
 }
 

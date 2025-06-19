@@ -20,6 +20,8 @@ public:
     juce::AudioProcessorValueTreeState apvts {*this, nullptr,
         "Parameters", createParameterLayout()};
     
+    float targetGain = 1.0f;
+    
     //==============================================================================
     ReverberationMachineAudioProcessor();
     ~ReverberationMachineAudioProcessor() override;
