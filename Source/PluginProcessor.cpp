@@ -127,8 +127,8 @@ void ReverberationMachineAudioProcessor::prepareToPlay (double sampleRate, int s
     reverbHighCutR.prepare(spec);
     reverbHighCutL.setType(juce::dsp::StateVariableTPTFilterType::lowpass);
     reverbHighCutR.setType(juce::dsp::StateVariableTPTFilterType::lowpass);
-    reverbHighCutL.setCutoffFrequency(10000.0f);
-    reverbHighCutR.setCutoffFrequency(10000.0f);
+    reverbHighCutL.setCutoffFrequency(15000.0f);
+    reverbHighCutR.setCutoffFrequency(15000.0f);
     reverbHighCutL.setResonance(0.3f);
     reverbHighCutR.setResonance(0.3f);
     
@@ -159,6 +159,15 @@ void ReverberationMachineAudioProcessor::prepareToPlay (double sampleRate, int s
     preDelayR.setMaximumDelayInSamples(static_cast<int>(sampleRate * 1.0f));
     preDelayL.setDelay((sampleRate * preDelayTimeMs) / 1000.0f);
     preDelayR.setDelay((sampleRate * preDelayTimeMs) / 1000.0f);
+    
+    tiltLowShelfL.reset();
+    tiltLowShelfR.reset();
+    tiltHighShelfL.reset();
+    tiltHighShelfR.reset();
+    tiltLowShelfL.prepare(spec);
+    tiltLowShelfR.prepare(spec);
+    tiltHighShelfL.prepare(spec);
+    tiltHighShelfR.prepare(spec);
 }
 
 
@@ -208,18 +217,17 @@ void ReverberationMachineAudioProcessor::processBlock (juce::AudioBuffer<float>&
     inputLevelL.store(inL);
     inputLevelR.store(inR);
 
-    // Create dry and processed buffers
     juce::AudioBuffer<float> dryBuffer;
     dryBuffer.makeCopyOf(buffer);
     
     juce::AudioBuffer<float> processedDryBuffer;
     processedDryBuffer.makeCopyOf(dryBuffer);
     
-    // === GAIN STAGE on processedDryBuffer === //
+    // === Gain on processedDryBuffer === //
     float gainParam = apvts.getRawParameterValue("GAIN")->load();
     float shaped = std::pow(gainParam, 2.2f);
-    float drive1 = juce::jmap(shaped, 1.0f, 10.0f);
-    float drive2 = juce::jmap(shaped, 1.0f, 5.0f);
+    float drive1 = juce::jmap(shaped, 1.0f, 8.0f);
+    float drive2 = juce::jmap(shaped, 1.0f, 2.5f);
 
     float threshold = 0.01f;
     float gateReleaseRate = 0.999f;
@@ -276,7 +284,7 @@ void ReverberationMachineAudioProcessor::processBlock (juce::AudioBuffer<float>&
             wetBuffer.setSample(1, i, delayedR);
     }
 
-    // === Reverb STAGE and Filtering === //
+    // === Reverb and Filtering === //
     reverbParams.roomSize = 0.95f;
     reverbParams.damping = 0.1f;
     reverbParams.wetLevel = 1.0f;
@@ -394,6 +402,20 @@ void ReverberationMachineAudioProcessor::processBlock (juce::AudioBuffer<float>&
             out[i] = dry[i] * (1.0f - verbAmount) + wet[i] * verbAmount;
         }
     }
+    
+    // === Dark / Light Tilt EQ === //
+    juce::dsp::AudioBlock<float> finalBlock(buffer);
+    auto finalBlockL = finalBlock.getSingleChannelBlock(0);
+    auto finalBlockR = finalBlock.getSingleChannelBlock(1);
+    juce::dsp::ProcessContextReplacing<float> finalContextL(finalBlockL);
+    juce::dsp::ProcessContextReplacing<float> finalContextR(finalBlockR);
+    
+    updateTiltEQ();
+    
+    tiltLowShelfL.process(finalContextL);
+    tiltLowShelfR.process(finalContextR);
+    tiltHighShelfL.process(finalContextL);
+    tiltHighShelfR.process(finalContextR);
 
     // === Output Volume Control === //
     auto volDb = apvts.getRawParameterValue("VOL")->load();
@@ -447,4 +469,25 @@ void ReverberationMachineAudioProcessor::setStateInformation (const void* data, 
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
 {
     return new ReverberationMachineAudioProcessor();
+}
+
+void ReverberationMachineAudioProcessor::updateTiltEQ()
+{
+    float tilt = apvts.getRawParameterValue("DARK_LIGHT")->load();
+    tilt = juce::jlimit(-1.0f, 1.0f, tilt);
+    tilt = std::tanh(tilt * 2.0f);
+    tilt = -tilt;
+    
+    float lowGainDb = tilt * 2.0f;
+    float highGainDb = tilt * 6.0f;
+    float freq = 800.0f;
+    float q = 0.707f;
+    
+    auto lowShelf = juce::dsp::IIR::Coefficients<float>::makeLowShelf(getSampleRate(), freq, q, juce::Decibels::decibelsToGain(lowGainDb));
+    auto highShelf = juce::dsp::IIR::Coefficients<float>::makeHighShelf(getSampleRate(), freq, q, juce::Decibels::gainToDecibels(highGainDb));
+    
+    tiltLowShelfL.coefficients = lowShelf;
+    tiltLowShelfR.coefficients = lowShelf;
+    tiltHighShelfL.coefficients = lowShelf;
+    tiltHighShelfR.coefficients = lowShelf;
 }

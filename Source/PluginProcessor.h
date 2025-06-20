@@ -45,6 +45,10 @@ public:
     juce::dsp::DelayLine<float, juce::dsp::DelayLineInterpolationTypes::Linear> preDelayL, preDelayR;
     float preDelayTimeMs = 80.0f;
     
+    juce::dsp::IIR::Filter<float> tiltLowShelfL, tiltLowShelfR;
+    juce::dsp::IIR::Filter<float> tiltHighShelfL, tiltHighShelfR;
+    
+    
     //==============================================================================
     ReverberationMachineAudioProcessor();
     ~ReverberationMachineAudioProcessor() override;
@@ -83,6 +87,7 @@ public:
     void setStateInformation (const void* data, int sizeInBytes) override;
 
 private:
+    void updateTiltEQ();
     
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ReverberationMachineAudioProcessor)
