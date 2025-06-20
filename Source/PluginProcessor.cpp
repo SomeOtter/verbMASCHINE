@@ -17,20 +17,20 @@ juce::AudioProcessorValueTreeState::ParameterLayout ReverberationMachineAudioPro
     float volMaxValue = 12.0f;
     float volDefaultValue = 0.0f;
     
-    float volSkewFactor =   std::log(0.5f) /
+    float volSkewFactor = std::log(0.5f) /
                             std::log((volDefaultValue - volMinValue) / (volMaxValue - volMinValue));
     
     layout.push_back(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID("VOL", 1),
         "VOL", juce::NormalisableRange<float>(-48.0, 12.0f, 0.1f, volSkewFactor), 0.0f));
     
     layout.push_back(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID("GAIN", 1),
-        "GAIN", juce::NormalisableRange<float>(0.0f, 1.0f), 0.1f));
+        "GAIN", juce::NormalisableRange<float>(0.0f, 1.0f), 0.25f));
     
     layout.push_back(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID("VERB", 1),
-        "VERB", juce::NormalisableRange<float>(0.0f, 1.0f, 0.0001f, 0.5f), 0.5f));
+        "VERB", juce::NormalisableRange<float>(0.0f, 1.0f, 0.0001f, 0.5f), 0.25f));
     
-    layout.push_back(std::make_unique<juce::AudioParameterBool>(juce::ParameterID("DARK // LIGHT", 1),
-        "DARK // LIGHT", false));
+    layout.push_back(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID("DARK_LIGHT", 1),
+        "DARK_LIGHT", juce::NormalisableRange<float>(-1.0f, 1.0f, 0.0001f), 0.0f));
     
     return {layout.begin(), layout.end()};
 }

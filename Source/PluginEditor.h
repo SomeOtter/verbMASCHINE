@@ -35,58 +35,25 @@ public:
 
             // Inner circle
             float innerRadius = radius * 0.5f;
+            float lineWidth = radius * 0.06f;
             Rectangle<float> innerBounds(center.x - innerRadius, center.y - innerRadius,
                                          innerRadius * 2, innerRadius * 2);
             g.setColour(Colour::fromRGB(200, 200, 190));
             g.fillEllipse(innerBounds);
-
+            g.setColour(Colour::fromRGB(27, 27, 27));
+            g.drawEllipse(innerBounds, lineWidth);
+            
             // Pointer
             Path pointer;
             float pointerLength = radius * 0.5f;
-            float pointerThickness = 3.0f;
+            float pointerThickness = lineWidth;
             
             pointer.addRectangle(-pointerThickness * 0.5f, -(radius),
                                  pointerThickness, pointerLength);
             
-            g.setColour(Colours::black);
+            g.setColour(Colour::fromRGB(27, 27, 27));
             g.fillPath(pointer, AffineTransform::rotation(angle).translated(center.x, center.y));
         }
-};
-
-class CustomToggleLookAndFeel : public juce::LookAndFeel_V4
-{
-public:
-    void drawToggleButton(juce::Graphics& g, juce::ToggleButton& button,
-                          bool isMouseOverButton,
-                          bool isButtonDown) override
-    {
-        using namespace juce;
-        
-        auto bounds = button.getLocalBounds().toFloat();
-        
-        auto trackWidth = bounds.getWidth() * 0.4f;
-        auto trackHeight = bounds.getHeight() * 0.4f;
-        auto trackX = bounds.getCentreX() - trackWidth * 0.5f;
-        auto trackY = bounds.getCentreY() - trackHeight * 0.5f;
-        
-        auto trackBounds = Rectangle<float>(trackX, trackY, trackWidth, trackHeight);
-        
-        auto trackColour = Colour::fromRGB(200, 200, 190);
-        auto thumbColour = Colour::fromRGB(250, 255, 220);
-        
-        g.setColour(trackColour);
-        g.fillRoundedRectangle(trackBounds, trackHeight * 0.15f);
-        
-        float thumbSize = trackHeight;
-        float thumbRadius = thumbSize * 0.15f;
-        
-        float thumbX = button.getToggleState() ? trackBounds.getRight() - thumbSize : trackBounds.getX();
-        
-        auto thumbBounds = Rectangle<float>(thumbX, trackY, thumbSize, thumbSize);
-        
-        g.setColour(thumbColour);
-        g.fillRoundedRectangle(thumbBounds, thumbRadius);
-    }
 };
 
 class VisualiserComponent : public juce::Component, private juce::Timer
@@ -249,14 +216,13 @@ private:
     juce::FontOptions fontOptions;
     juce::Label titleLabel;
     
+    CustomKnobLookAndFeel customKnobLookAndFeel;
+    
     juce::Slider volKnob, gainKnob, verbKnob;
     juce::Label volLabel, gainLabel, verbLabel;
     
-    juce::ToggleButton darkLightToggle;
+    juce::Slider darkLightKnob;
     juce::Label darkLightLabel;
-    
-    CustomKnobLookAndFeel customKnobLookAndFeel;
-    CustomToggleLookAndFeel customToggleLookAndFeel;
     
     std::unique_ptr<VisualiserComponent> visualiser;
     
@@ -269,9 +235,45 @@ private:
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> volAttachment;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> gainAttachment;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> verbAttachment;
-    std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> darklightAttachment;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> darkLightAttachment;
     
     void layoutKnobWithLabel(juce::Slider&, juce::Label&, const juce::String&, juce::Rectangle<int>);
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ReverberationMachineAudioProcessorEditor)
 };
+
+//class CustomToggleLookAndFeel : public juce::LookAndFeel_V4
+//{
+//public:
+//    void drawToggleButton(juce::Graphics& g, juce::ToggleButton& button,
+//                          bool isMouseOverButton,
+//                          bool isButtonDown) override
+//    {
+//        using namespace juce;
+//
+//        auto bounds = button.getLocalBounds().toFloat();
+//
+//        auto trackWidth = bounds.getWidth() * 0.4f;
+//        auto trackHeight = bounds.getHeight() * 0.4f;
+//        auto trackX = bounds.getCentreX() - trackWidth * 0.5f;
+//        auto trackY = bounds.getCentreY() - trackHeight * 0.5f;
+//
+//        auto trackBounds = Rectangle<float>(trackX, trackY, trackWidth, trackHeight);
+//
+//        auto trackColour = Colour::fromRGB(200, 200, 190);
+//        auto thumbColour = Colour::fromRGB(250, 255, 220);
+//
+//        g.setColour(trackColour);
+//        g.fillRoundedRectangle(trackBounds, trackHeight * 0.15f);
+//
+//        float thumbSize = trackHeight;
+//        float thumbRadius = thumbSize * 0.15f;
+//
+//        float thumbX = button.getToggleState() ? trackBounds.getRight() - thumbSize : trackBounds.getX();
+//
+//        auto thumbBounds = Rectangle<float>(thumbX, trackY, thumbSize, thumbSize);
+//
+//        g.setColour(thumbColour);
+//        g.fillRoundedRectangle(thumbBounds, thumbRadius);
+//    }
+//};

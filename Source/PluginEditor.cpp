@@ -15,7 +15,6 @@ ReverberationMachineAudioProcessorEditor::ReverberationMachineAudioProcessorEdit
 fontOptions("Helvetica Neue", 85.0f, juce::Font::bold)
 {
     using SliderAttachment = juce::AudioProcessorValueTreeState::SliderAttachment;
-    using ButtonAttachment = juce::AudioProcessorValueTreeState::ButtonAttachment;
     
     visualiser = std::make_unique<VisualiserComponent>(
                                                        [this] { return gainKnob.getValue(); },
@@ -39,13 +38,13 @@ fontOptions("Helvetica Neue", 85.0f, juce::Font::bold)
     addAndMakeVisible(gainLabel);
     addAndMakeVisible(verbLabel);
     
-    addAndMakeVisible(darkLightToggle);
+    addAndMakeVisible(darkLightKnob);
+    darkLightKnob.setSliderStyle(juce::Slider::SliderStyle::RotaryHorizontalVerticalDrag);
+    darkLightKnob.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
+    darkLightKnob.setLookAndFeel(&customKnobLookAndFeel);
+    
+    juce::FontOptions labelFont("Helvetica Neue", 15.0f, juce::Font::bold);
     addAndMakeVisible(darkLightLabel);
-    
-    darkLightToggle.setClickingTogglesState(true);
-    darkLightToggle.setLookAndFeel(&customToggleLookAndFeel);
-    
-    juce::FontOptions labelFont("Helvetica Neue", 18.0f, juce::Font::bold);
     darkLightLabel.setFont(labelFont);
     darkLightLabel.setText("DARK / LIGHT", juce::dontSendNotification);
     darkLightLabel.setJustificationType(juce::Justification::centredTop);
@@ -73,6 +72,7 @@ fontOptions("Helvetica Neue", 85.0f, juce::Font::bold)
     volAttachment = std::make_unique<SliderAttachment>(audioProcessor.apvts, "VOL", volKnob);
     gainAttachment = std::make_unique<SliderAttachment>(audioProcessor.apvts, "GAIN", gainKnob);
     verbAttachment = std::make_unique<SliderAttachment>(audioProcessor.apvts, "VERB", verbKnob);
+    darkLightAttachment = std::make_unique<SliderAttachment>(audioProcessor.apvts, "DARK_LIGHT", darkLightKnob);
 }
 
 ReverberationMachineAudioProcessorEditor::~ReverberationMachineAudioProcessorEditor()
@@ -80,7 +80,7 @@ ReverberationMachineAudioProcessorEditor::~ReverberationMachineAudioProcessorEdi
     volKnob.setLookAndFeel(nullptr);
     gainKnob.setLookAndFeel(nullptr);
     verbKnob.setLookAndFeel(nullptr);
-    darkLightToggle.setLookAndFeel(nullptr);
+    darkLightKnob.setLookAndFeel(nullptr);
 }
 
 //==============================================================================
@@ -96,7 +96,7 @@ void ReverberationMachineAudioProcessorEditor::paint (juce::Graphics& g)
     g.drawRoundedRectangle(getLocalBounds().toFloat().reduced(8), 15.f, 4.f);
     
     // Meter area
-    g.setColour(juce::Colour::fromRGBA(200, 200, 190, 10));
+    g.setColour(juce::Colour::fromRGB(27, 27, 27));
     g.fillRoundedRectangle(row1Fill.toFloat(), 15.f);
 }
 
@@ -161,18 +161,17 @@ void ReverberationMachineAudioProcessorEditor::resized()
         auto visualArea = row2.removeFromLeft(row2.getWidth() * 2 / 3);
         visualiser->setBounds(visualArea);
         
-        auto toggleArea = row2;
+        auto darkLightArea = row2.reduced(10);
 
-        int totalHeight = toggleArea.getHeight();
-        int toggleHeight = totalHeight * 0.6f;
-        int labelHeight = totalHeight - toggleHeight;
+        int totalHeight = darkLightArea.getHeight();
+        int knobHeight = totalHeight * 0.5f;
 
         // Get area for toggle
-        auto toggleBounds = toggleArea.removeFromTop(toggleHeight);
-        darkLightToggle.setBounds(toggleBounds);
+        auto knobBounds = darkLightArea.removeFromTop(knobHeight);
+        darkLightKnob.setBounds(knobBounds);
 
         // Directly below the toggle, no extra space
-        auto labelBounds = toggleArea.removeFromTop(labelHeight);
+        auto labelBounds = darkLightArea.reduced(15);
         darkLightLabel.setBounds(labelBounds);
         darkLightLabel.setJustificationType(juce::Justification::centredTop);
     }
