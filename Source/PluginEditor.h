@@ -201,14 +201,8 @@ public:
     //==============================================================================
     void paint (juce::Graphics&) override;
     void resized() override;
-    
-    void timerCallback() override
-    {
-        inputMeterL.setLevel(audioProcessor.inputLevelL.load());
-        inputMeterR.setLevel(audioProcessor.inputLevelR.load());
-        outputMeterL.setLevel(audioProcessor.outputLevelL.load());
-        outputMeterR.setLevel(audioProcessor.outputLevelR.load());
-    }
+    void mouseUp(const juce::MouseEvent& event) override;
+    void timerCallback() override;
 
 private:
     ReverberationMachineAudioProcessor& audioProcessor;
@@ -238,6 +232,11 @@ private:
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> darkLightAttachment;
     
     void layoutKnobWithLabel(juce::Slider&, juce::Label&, const juce::String&, juce::Rectangle<int>);
+    
+    juce::Colour startColour = juce::Colour::fromRGB(0, 200, 200);
+    juce::Colour targetColour = juce::Colour::fromRGB(200, 200, 190);
+    float colourBlend = 0.0f;
+    bool isAnimating = false;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ReverberationMachineAudioProcessorEditor)
 };

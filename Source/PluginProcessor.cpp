@@ -32,6 +32,8 @@ juce::AudioProcessorValueTreeState::ParameterLayout ReverberationMachineAudioPro
     layout.push_back(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID("DARK_LIGHT", 1),
         "DARK_LIGHT", juce::NormalisableRange<float>(-1.0f, 1.0f, 0.0001f), 0.0f));
     
+    layout.push_back(std::make_unique<juce::AudioParameterBool>(juce::ParameterID("BYPASS", 1), "BYPASS", false));
+    
     return {layout.begin(), layout.end()};
 }
 
@@ -212,6 +214,10 @@ void ReverberationMachineAudioProcessor::processBlock (juce::AudioBuffer<float>&
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
         buffer.clear (i, 0, buffer.getNumSamples());
     
+    bool isBypassed = apvts.getRawParameterValue("BYPASS")->load() >= 0.5f;
+    if(isBypassed)
+        return;
+    
     float inL = buffer.getRMSLevel(0, 0, buffer.getNumSamples());
     float inR = buffer.getNumChannels() > 1 ? buffer.getRMSLevel(1, 0, buffer.getNumSamples()) : inL;
     inputLevelL.store(inL);
@@ -229,8 +235,9 @@ void ReverberationMachineAudioProcessor::processBlock (juce::AudioBuffer<float>&
     float drive1 = juce::jmap(shaped, 1.0f, 8.0f);
     float drive2 = juce::jmap(shaped, 1.0f, 2.5f);
 
-    float threshold = 0.01f;
-    float gateReleaseRate = 0.999f;
+    float gateThreshold = 0.01f;
+    float gateReleaseRate = 0.9995f;
+    float gateAttackRate = 0.3f;
     static float envelopeL = 0.0f;
     static float envelopeR = 0.0f;
 
@@ -253,13 +260,14 @@ void ReverberationMachineAudioProcessor::processBlock (juce::AudioBuffer<float>&
                 float mixed = juce::jmap(gainParam, sample, stage2);
                 
                 float absMixed = std::abs(mixed);
-                if (absMixed > envelope) envelope = absMixed;
-                else envelope *= gateReleaseRate;
+                envelope = (absMixed > envelope)
+                ? gateAttackRate * absMixed + (1.0f - gateAttackRate) * envelope
+                : gateReleaseRate;
+                    
+                float gainCurve = juce::jlimit(0.0f, 1.0f, (envelope - gateThreshold) / (0.05f - gateThreshold));
+                gainCurve = std::pow(gainCurve, 2.0f);
                 
-                float gateGain = juce::jlimit(0.0f, 1.0f, juce::jmap(envelope, 0.0f, threshold, 0.0f, 1.0f));
-                gateGain = std::pow(gateGain, 6.0f);
-                
-                channelData[i] = mixed * gateGain;
+                channelData[i] = mixed * gainCurve;
             }
         }
     }

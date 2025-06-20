@@ -16,6 +16,8 @@ fontOptions("Helvetica Neue", 85.0f, juce::Font::bold)
 {
     using SliderAttachment = juce::AudioProcessorValueTreeState::SliderAttachment;
     
+    titleLabel.addMouseListener(this, true);
+    
     visualiser = std::make_unique<VisualiserComponent>(
                                                        [this] { return gainKnob.getValue(); },
                                                        [this] { return verbKnob.getValue(); });
@@ -27,8 +29,10 @@ fontOptions("Helvetica Neue", 85.0f, juce::Font::bold)
     titleLabel.setText("GRITTTTTIMER", juce::dontSendNotification);
     titleLabel.setJustificationType(juce::Justification::centred);
     titleLabel.setFont(fontOptions);
-    titleLabel.setColour(juce::Label::textColourId, juce::Colour::fromRGB(200, 200, 190));
+    titleLabel.setColour(juce::Label::textColourId, juce::Colour::fromRGB(0, 200, 200));
     titleLabel.setColour(juce::Label::backgroundColourId, juce::Colours::transparentBlack);
+    titleLabel.setInterceptsMouseClicks(true, false);
+    titleLabel.setMouseCursor(juce::MouseCursor::PointingHandCursor);
     
     addAndMakeVisible(volKnob);
     addAndMakeVisible(gainKnob);
@@ -215,4 +219,55 @@ void ReverberationMachineAudioProcessorEditor::layoutKnobWithLabel(juce::Slider&
     label.setJustificationType(juce::Justification::centredTop);
     label.setColour(juce::Label::textColourId, juce::Colour::fromRGB(200, 200, 190));
     label.setBounds(area.removeFromTop(labelHeight));
+}
+
+void ReverberationMachineAudioProcessorEditor::timerCallback()
+{
+    // Meter Updates
+    inputMeterL.setLevel(audioProcessor.inputLevelL.load());
+    inputMeterR.setLevel(audioProcessor.inputLevelR.load());
+    outputMeterL.setLevel(audioProcessor.outputLevelL.load());
+    outputMeterR.setLevel(audioProcessor.outputLevelR.load());
+    
+    // Text Animation
+    if (!isAnimating)
+        return;
+
+    constexpr float step = 0.1f; // Animation speed
+    colourBlend += step;
+
+    if (colourBlend >= 1.0f)
+    {
+        colourBlend = 1.0f;
+        isAnimating = false;
+        stopTimer();
+    }
+
+    auto blended = startColour.interpolatedWith(targetColour, colourBlend);
+    titleLabel.setColour(juce::Label::textColourId, blended);
+}
+
+void ReverberationMachineAudioProcessorEditor::mouseUp(const juce::MouseEvent& event)
+{
+    if (event.eventComponent == &titleLabel)
+    {
+        auto& processor = static_cast<ReverberationMachineAudioProcessor&>(audioProcessor);
+        auto* bypassParam = dynamic_cast<juce::AudioParameterBool*>(processor.apvts.getParameter("BYPASS"));
+
+        if (bypassParam != nullptr)
+        {
+            bool newState = !bypassParam->get();
+
+            bypassParam->beginChangeGesture();
+            bypassParam->setValueNotifyingHost(newState ? 1.0f : 0.0f);
+            bypassParam->endChangeGesture();
+
+            startColour = titleLabel.findColour(juce::Label::textColourId);
+            targetColour = newState ? juce::Colour::fromRGB(200, 200, 190) : juce::Colour::fromRGB(0, 200, 200);
+            colourBlend = 0.0f;
+            isAnimating = true;
+
+            startTimerHz(60);
+        }
+    }
 }
