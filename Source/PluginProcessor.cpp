@@ -134,9 +134,11 @@ void ReverberationMachineAudioProcessor::prepareToPlay (double sampleRate, int s
     tailFilterR.prepare(spec);
     tailFilterL.setType(juce::dsp::StateVariableTPTFilterType::highpass);
     tailFilterR.setType(juce::dsp::StateVariableTPTFilterType::highpass);
+    tailFilterL.setResonance(0.5f);
+    tailFilterR.setResonance(0.5f);
     
-    tailCutoffL.reset(sampleRate, 0.5);
-    tailCutoffR.reset(sampleRate, 0.5);
+    tailCutoffL.reset(sampleRate, 0.05);
+    tailCutoffR.reset(sampleRate, 0.05);
 }
 
 void ReverberationMachineAudioProcessor::releaseResources()
@@ -199,7 +201,7 @@ void ReverberationMachineAudioProcessor::processBlock (juce::AudioBuffer<float>&
     float drive2 = juce::jmap(shaped, 1.0f, 5.0f);
 
     float threshold = 0.01f;
-    float releaseRate = 0.999f;
+    float gateReleaseRate = 0.999f;
     static float envelopeL = 0.0f;
     static float envelopeR = 0.0f;
 
@@ -223,7 +225,7 @@ void ReverberationMachineAudioProcessor::processBlock (juce::AudioBuffer<float>&
                 
                 float absMixed = std::abs(mixed);
                 if (absMixed > envelope) envelope = absMixed;
-                else envelope *= releaseRate;
+                else envelope *= gateReleaseRate;
                 
                 float gateGain = juce::jlimit(0.0f, 1.0f, juce::jmap(envelope, 0.0f, threshold, 0.0f, 1.0f));
                 gateGain = std::pow(gateGain, 6.0f);
@@ -237,7 +239,7 @@ void ReverberationMachineAudioProcessor::processBlock (juce::AudioBuffer<float>&
     juce::AudioBuffer<float> wetBuffer;
     wetBuffer.makeCopyOf(processedDryBuffer);
 
-    reverbParams.roomSize = 0.9f;
+    reverbParams.roomSize = 0.95f;
     reverbParams.damping = 0.1f;
     reverbParams.wetLevel = 1.0f;
     reverbParams.dryLevel = 0.0f;
@@ -267,17 +269,28 @@ void ReverberationMachineAudioProcessor::processBlock (juce::AudioBuffer<float>&
     {
         float db = juce::Decibels::gainToDecibels(level + 1e-5f);
         db = juce::jlimit(-60.0f, 0.0f, db);
+        
         float norm = juce::jmap(db, -60.0f, 0.0f, 1.0f, 0.0f);
-        return juce::jmap(norm, 80.0f, 3000.0f);
+        float shapedNorm = std::pow(norm, 2.5f);
+        
+        return juce::jmap(shapedNorm, 40.0f, 6000.0f);
     };
 
-    float tailLevelL = wetBuffer.getRMSLevel(0, 0, wetBuffer.getNumSamples());
-    float tailLevelR = wetBuffer.getNumChannels() > 1 ? wetBuffer.getRMSLevel(1, 0, wetBuffer.getNumSamples()) : tailLevelL;
-
-    tailCutoffL.setTargetValue(mapTailCutoff(tailLevelL));
-    tailCutoffR.setTargetValue(mapTailCutoff(tailLevelR));
-
-    for (int i = 0; i < wetBuffer.getNumSamples(); ++i)
+    float tailsReleaseRate = 0.9995f;
+    
+    for(int i = 0; i < wetBuffer.getNumSamples(); ++i)
+    {
+        float sampleL = std::abs(wetBuffer.getSample(0, i));
+        float sampleR = wetBuffer.getNumChannels() > 1 ? std::abs(wetBuffer.getSample(1, i)) : sampleL;
+        
+        tailEnvelopeL = std::max(sampleL, tailEnvelopeL * tailsReleaseRate);
+        tailEnvelopeR = std::max(sampleR, tailEnvelopeR * tailsReleaseRate);
+    }
+    
+    tailCutoffL.setTargetValue(mapTailCutoff(tailEnvelopeL));
+    tailCutoffR.setTargetValue(mapTailCutoff(tailEnvelopeR));
+    
+    for(int i = 0; i < wetBuffer.getNumSamples(); ++i)
     {
         float cutoffL = tailCutoffL.getNextValue();
         float cutoffR = tailCutoffR.getNextValue();
@@ -285,16 +298,18 @@ void ReverberationMachineAudioProcessor::processBlock (juce::AudioBuffer<float>&
         tailFilterL.setCutoffFrequency(cutoffL);
         tailFilterR.setCutoffFrequency(cutoffR);
         
-        float sampleL = wetBuffer.getSample(0, i);
-        float sampleR = wetBuffer.getNumChannels() > 1 ? wetBuffer.getSample(1, i) : sampleL;
+        float wetSampleL = wetBuffer.getSample(0, i);
+        float wetSampleR = wetBuffer.getNumChannels() > 1 ? wetBuffer.getSample(1, i) : wetSampleL;
         
-        sampleL = tailFilterL.processSample(0, sampleL);
-        if (wetBuffer.getNumChannels() > 1)
-            sampleR = tailFilterR.processSample(0, sampleR);
+        wetSampleL = tailFilterL.processSample(0, wetSampleL);
+        if(wetBuffer.getNumChannels() > 1)
+        {
+            wetSampleR = tailFilterR.processSample(0, wetSampleR);
+        }
         
-        wetBuffer.setSample(0, i, sampleL);
+        wetBuffer.setSample(0, i, wetSampleL);
         if (wetBuffer.getNumChannels() > 1)
-            wetBuffer.setSample(1, i, sampleR);
+            wetBuffer.setSample(1, i, wetSampleR);
     }
 
     // === Final Wet/Dry Mix === //

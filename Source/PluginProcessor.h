@@ -34,6 +34,9 @@ public:
     juce::dsp::StateVariableTPTFilter<float> tailFilterL, tailFilterR;
     juce::SmoothedValue<float> tailCutoffL, tailCutoffR;
     
+    float tailEnvelopeL = 0.0f;
+    float tailEnvelopeR = 0.0f;
+    
     //==============================================================================
     ReverberationMachineAudioProcessor();
     ~ReverberationMachineAudioProcessor() override;
