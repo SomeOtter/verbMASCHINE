@@ -42,6 +42,9 @@ public:
     float lfoRateHz = 0.6f;
     float lfoDepthMs = 60.0f;
     
+    juce::dsp::DelayLine<float, juce::dsp::DelayLineInterpolationTypes::Linear> preDelayL, preDelayR;
+    float preDelayTimeMs = 80.0f;
+    
     //==============================================================================
     ReverberationMachineAudioProcessor();
     ~ReverberationMachineAudioProcessor() override;

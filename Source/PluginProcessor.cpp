@@ -148,6 +148,15 @@ void ReverberationMachineAudioProcessor::prepareToPlay (double sampleRate, int s
     tailModDelayR.setMaximumDelayInSamples(static_cast<int>(sampleRate));
     tailModDelayL.setDelay(10.0f);
     tailModDelayR.setDelay(10.0f);
+    
+    preDelayL.reset();
+    preDelayR.reset();
+    preDelayL.prepare(spec);
+    preDelayR.prepare(spec);
+    preDelayL.setMaximumDelayInSamples(static_cast<int>(sampleRate * 1.0f));
+    preDelayR.setMaximumDelayInSamples(static_cast<int>(sampleRate * 1.0f));
+    preDelayL.setDelay((sampleRate * preDelayTimeMs) / 1000.0f);
+    preDelayR.setDelay((sampleRate * preDelayTimeMs) / 1000.0f);
 }
 
 
@@ -245,10 +254,27 @@ void ReverberationMachineAudioProcessor::processBlock (juce::AudioBuffer<float>&
         }
     }
 
-    // === Reverb and Filter STAGE === //
     juce::AudioBuffer<float> wetBuffer;
     wetBuffer.makeCopyOf(processedDryBuffer);
+    
+    // === Reverb Predelay === //
+    for(int i = 0; i < wetBuffer.getNumSamples(); ++i)
+    {
+        float sampleL = wetBuffer.getSample(0, i);
+        float sampleR = wetBuffer.getNumChannels() > 1 ? wetBuffer.getSample(1, i) : sampleL;
+        
+        preDelayL.pushSample(0, sampleL);
+        preDelayR.pushSample(0, sampleR);
+        
+        float delayedL = preDelayL.popSample(0);
+        float delayedR = preDelayR.popSample(0);
+        
+        wetBuffer.setSample(0, i, delayedL);
+        if (wetBuffer.getNumChannels() > 1)
+            wetBuffer.setSample(1, i, delayedR);
+    }
 
+    // === Reverb STAGE and Filtering === //
     reverbParams.roomSize = 0.95f;
     reverbParams.damping = 0.1f;
     reverbParams.wetLevel = 1.0f;
