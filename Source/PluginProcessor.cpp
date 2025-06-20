@@ -155,17 +155,65 @@ void ReverberationMachineAudioProcessor::processBlock (juce::AudioBuffer<float>&
     auto totalNumInputChannels  = getTotalNumInputChannels();
     auto totalNumOutputChannels = getTotalNumOutputChannels();
     
-    const int numSamples = buffer.getNumSamples();
-
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
-        buffer.clear (i, 0, numSamples);
+        buffer.clear (i, 0, buffer.getNumSamples());
     
     // Get input level for meters
-    float inL = buffer.getRMSLevel(0, 0, numSamples);
-    float inR = buffer.getNumChannels() > 1 ? buffer.getRMSLevel(1, 0, numSamples) : inL;
+    float inL = buffer.getRMSLevel(0, 0, buffer.getNumSamples());
+    float inR = buffer.getNumChannels() > 1 ? buffer.getRMSLevel(1, 0, buffer.getNumSamples()) : inL;
     inputLevelL.store(inL);
     inputLevelR.store(inR);
-
+    
+    // Gain config
+    float gainParam = apvts.getRawParameterValue("GAIN")->load();
+    float shaped = std::pow(gainParam, 2.2f);
+    float drive1 = juce::jmap(shaped, 1.0f, 20.0f);
+    float drive2 = juce::jmap(shaped, 1.0f, 80.0f);
+    
+    // Gate config
+    float threshold = 0.05f;
+    float releaseRate = 0.5f;
+    static float envelopeL = 0.0f;
+    static float envelopeR = 0.0f;
+    
+    // Clipping functions
+    auto softClip = [](float x)
+    {
+        return x / (1.0f + std::abs(1.0f * x));
+    };
+    
+    auto hardClip = [](float x)
+    {
+        return juce::jlimit(-0.4f, 0.4f, x);
+    };
+    
+    for (int channel = 0; channel < buffer.getNumChannels(); ++channel)
+    {
+        auto* channelData = buffer.getWritePointer(channel);
+        float& envelope = (channel == 0) ? envelopeL : envelopeR;
+        
+        for(int i = 0; i < buffer.getNumSamples(); ++i)
+        {
+            float sample = channelData[i];
+            
+            float stage1 = softClip(sample * drive1);
+            float stage2 = hardClip(stage1 * drive2);
+            
+            float mixed = juce::jmap(gainParam, sample, stage2);
+            
+            float absMixed = std::abs(mixed);
+            if(absMixed > envelope)
+                envelope = absMixed;
+            else
+                envelope *= releaseRate;
+            
+            float gateGain = juce::jlimit(0.0f, 1.0f, juce::jmap(envelope, 0.0f, threshold, 0.0f, 1.0f));
+            gateGain = std::pow(gateGain, 3.0f);
+            
+            channelData[i] = mixed * gateGain;
+        }
+    }
+    
     // Vol config
     auto volDb = apvts.getRawParameterValue("VOL")->load();
     targetGain = juce::Decibels::decibelsToGain(volDb);
@@ -180,8 +228,8 @@ void ReverberationMachineAudioProcessor::processBlock (juce::AudioBuffer<float>&
     }
     
     // Get output levels for meter
-    float outL = buffer.getRMSLevel(0, 0, numSamples);
-    float outR = buffer.getNumChannels() > 1 ? buffer.getRMSLevel(1, 0, numSamples) : outL;
+    float outL = buffer.getRMSLevel(0, 0, buffer.getNumSamples());
+    float outR = buffer.getNumChannels() > 1 ? buffer.getRMSLevel(1, 0, buffer.getNumSamples()) : outL;
     outputLevelL.store(outL);
     outputLevelR.store(outR);
 }
