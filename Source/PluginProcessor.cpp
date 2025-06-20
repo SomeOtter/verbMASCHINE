@@ -113,13 +113,15 @@ void ReverberationMachineAudioProcessor::changeProgramName (int index, const juc
 //==============================================================================
 void ReverberationMachineAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
-    reverb.reset();
-    reverb.setSampleRate(sampleRate);
-    
     juce::dsp::ProcessSpec spec;
     spec.sampleRate = sampleRate;
     spec.maximumBlockSize = samplesPerBlock;
     spec.numChannels = getTotalNumOutputChannels();
+    
+    reverbL.reset();
+    reverbR.reset();
+    reverbL.setSampleRate(sampleRate);
+    reverbR.setSampleRate(sampleRate);
     
     reverbHighCutL.prepare(spec);
     reverbHighCutR.prepare(spec);
@@ -281,25 +283,24 @@ void ReverberationMachineAudioProcessor::processBlock (juce::AudioBuffer<float>&
     reverbParams.dryLevel = 0.0f;
     reverbParams.width = 0.8f;
     reverbParams.freezeMode = 0.0f;
-    reverb.setParameters(reverbParams);
+    
+    reverbL.setParameters(reverbParams);
+    reverbR.setParameters(reverbParams);
 
     juce::dsp::AudioBlock<float> block(wetBuffer);
     auto blockL = block.getSingleChannelBlock(0);
     auto blockR = block.getSingleChannelBlock(1);
     juce::dsp::ProcessContextReplacing<float> contextL(blockL);
     juce::dsp::ProcessContextReplacing<float> contextR(blockR);
+    
+    reverbL.processMono(wetBuffer.getWritePointer(0), wetBuffer.getNumSamples());
+    reverbHighCutL.process(contextL);
 
-    if (wetBuffer.getNumChannels() >= 2)
-    {
-        reverb.processStereo(wetBuffer.getWritePointer(0), wetBuffer.getWritePointer(1), wetBuffer.getNumSamples());
-        reverbHighCutL.process(contextL);
-        reverbHighCutR.process(contextR);
-    }
-    else
-    {
-        reverb.processMono(wetBuffer.getWritePointer(0), wetBuffer.getNumSamples());
-        reverbHighCutL.process(contextL);
-    }
+    if (wetBuffer.getNumChannels() > 1)
+        {
+            reverbR.processMono(wetBuffer.getWritePointer(0), wetBuffer.getNumSamples());
+            reverbHighCutR.process(contextR);
+        }
 
     auto mapTailCutoff = [](float level)
     {

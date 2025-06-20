@@ -27,8 +27,8 @@ public:
     std::atomic<float> outputLevelL {0.0f};
     std::atomic<float> outputLevelR {0.0f};
     
-    juce::Reverb reverb;
     juce::Reverb::Parameters reverbParams;
+    juce::Reverb reverbL, reverbR;
     
     juce::dsp::StateVariableTPTFilter<float> reverbHighCutL, reverbHighCutR;
     juce::dsp::StateVariableTPTFilter<float> tailFilterL, tailFilterR;
