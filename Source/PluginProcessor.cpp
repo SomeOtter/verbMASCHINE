@@ -139,7 +139,17 @@ void ReverberationMachineAudioProcessor::prepareToPlay (double sampleRate, int s
     
     tailCutoffL.reset(sampleRate, 0.05);
     tailCutoffR.reset(sampleRate, 0.05);
+    
+    tailModDelayL.reset();
+    tailModDelayR.reset();
+    tailModDelayL.prepare(spec);
+    tailModDelayR.prepare(spec);
+    tailModDelayL.setMaximumDelayInSamples(static_cast<int>(sampleRate));
+    tailModDelayR.setMaximumDelayInSamples(static_cast<int>(sampleRate));
+    tailModDelayL.setDelay(10.0f);
+    tailModDelayR.setDelay(10.0f);
 }
+
 
 void ReverberationMachineAudioProcessor::releaseResources()
 {
@@ -310,6 +320,38 @@ void ReverberationMachineAudioProcessor::processBlock (juce::AudioBuffer<float>&
         wetBuffer.setSample(0, i, wetSampleL);
         if (wetBuffer.getNumChannels() > 1)
             wetBuffer.setSample(1, i, wetSampleR);
+    }
+    
+    // === Reverb Modulation === //
+    const float sampleRate = getSampleRate();
+    const float lfoIncrement = (2.0f * juce::MathConstants<float>::pi * lfoRateHz) / sampleRate;
+    
+    for(int i = 0; i < wetBuffer.getNumSamples(); ++i)
+    {
+        float lfoValue = std::sin(lfoPhase);
+        float modulatedDelayMs = 10.0f + lfoValue * lfoDepthMs;
+        float maxDelayMs = (tailModDelayL.getMaximumDelayInSamples() * 1000.0f) / sampleRate;
+        modulatedDelayMs = juce::jlimit(0.0f, maxDelayMs, modulatedDelayMs);
+        
+        tailModDelayL.setDelay(modulatedDelayMs);
+        tailModDelayR.setDelay(modulatedDelayMs);
+        
+        float sampleL = wetBuffer.getSample(0, i);
+        float sampleR = wetBuffer.getNumSamples() > 1 ? wetBuffer.getSample(1, i) : sampleL;
+        
+        tailModDelayL.pushSample(0, sampleL);
+        tailModDelayR.pushSample(0, sampleR);
+        
+        float modSampleL = tailModDelayL.popSample(0);
+        float modSampleR = tailModDelayR.popSample(0);
+        
+        wetBuffer.setSample(0, i, modSampleL);
+        if(wetBuffer.getNumChannels() > 1)
+            wetBuffer.setSample(1, i, modSampleR);
+        
+        lfoPhase += lfoIncrement;
+        if(lfoPhase >= 2.0f * juce::MathConstants<float>::pi)
+            lfoPhase -= 2.0f * juce::MathConstants<float>::pi;
     }
 
     // === Final Wet/Dry Mix === //

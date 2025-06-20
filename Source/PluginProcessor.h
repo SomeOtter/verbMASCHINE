@@ -37,6 +37,11 @@ public:
     float tailEnvelopeL = 0.0f;
     float tailEnvelopeR = 0.0f;
     
+    juce::dsp::DelayLine<float, juce::dsp::DelayLineInterpolationTypes::Linear> tailModDelayL, tailModDelayR;
+    float lfoPhase = 0.0f;
+    float lfoRateHz = 0.6f;
+    float lfoDepthMs = 60.0f;
+    
     //==============================================================================
     ReverberationMachineAudioProcessor();
     ~ReverberationMachineAudioProcessor() override;
