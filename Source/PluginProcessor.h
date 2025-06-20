@@ -30,6 +30,10 @@ public:
     juce::Reverb reverb;
     juce::Reverb::Parameters reverbParams;
     
+    juce::dsp::StateVariableTPTFilter<float> reverbHighCutL, reverbHighCutR;
+    juce::dsp::StateVariableTPTFilter<float> tailFilterL, tailFilterR;
+    juce::SmoothedValue<float> tailCutoffL, tailCutoffR;
+    
     //==============================================================================
     ReverberationMachineAudioProcessor();
     ~ReverberationMachineAudioProcessor() override;
