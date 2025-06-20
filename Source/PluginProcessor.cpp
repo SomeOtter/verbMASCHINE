@@ -298,7 +298,7 @@ void ReverberationMachineAudioProcessor::processBlock (juce::AudioBuffer<float>&
 
     if (wetBuffer.getNumChannels() > 1)
         {
-            reverbR.processMono(wetBuffer.getWritePointer(0), wetBuffer.getNumSamples());
+            reverbR.processMono(wetBuffer.getWritePointer(1), wetBuffer.getNumSamples());
             reverbHighCutR.process(contextR);
         }
 
