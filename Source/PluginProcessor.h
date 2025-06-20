@@ -27,6 +27,9 @@ public:
     std::atomic<float> outputLevelL {0.0f};
     std::atomic<float> outputLevelR {0.0f};
     
+    juce::Reverb reverb;
+    juce::Reverb::Parameters reverbParams;
+    
     //==============================================================================
     ReverberationMachineAudioProcessor();
     ~ReverberationMachineAudioProcessor() override;

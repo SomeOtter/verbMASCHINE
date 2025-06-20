@@ -113,8 +113,8 @@ void ReverberationMachineAudioProcessor::changeProgramName (int index, const juc
 //==============================================================================
 void ReverberationMachineAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
-    // Use this method as the place to do any pre-playback
-    // initialisation that you need..
+//    reverb.reset();
+//    reverb.setSampleRate(sampleRate);
 }
 
 void ReverberationMachineAudioProcessor::releaseResources()
@@ -167,12 +167,12 @@ void ReverberationMachineAudioProcessor::processBlock (juce::AudioBuffer<float>&
     // Gain config
     float gainParam = apvts.getRawParameterValue("GAIN")->load();
     float shaped = std::pow(gainParam, 2.2f);
-    float drive1 = juce::jmap(shaped, 1.0f, 20.0f);
-    float drive2 = juce::jmap(shaped, 1.0f, 80.0f);
+    float drive1 = juce::jmap(shaped, 1.0f, 10.0f);
+    float drive2 = juce::jmap(shaped, 1.0f, 5.0f);
     
     // Gate config
-    float threshold = 0.05f;
-    float releaseRate = 0.5f;
+    float threshold = 0.01f;
+    float releaseRate = 0.999f;
     static float envelopeL = 0.0f;
     static float envelopeR = 0.0f;
     
@@ -187,33 +187,57 @@ void ReverberationMachineAudioProcessor::processBlock (juce::AudioBuffer<float>&
         return juce::jlimit(-0.4f, 0.4f, x);
     };
     
-    for (int channel = 0; channel < buffer.getNumChannels(); ++channel)
+    if(gainParam > 0.0001f)
     {
-        auto* channelData = buffer.getWritePointer(channel);
-        float& envelope = (channel == 0) ? envelopeL : envelopeR;
-        
-        for(int i = 0; i < buffer.getNumSamples(); ++i)
+        for (int channel = 0; channel < buffer.getNumChannels(); ++channel)
         {
-            float sample = channelData[i];
+            auto* channelData = buffer.getWritePointer(channel);
+            float& envelope = (channel == 0) ? envelopeL : envelopeR;
             
-            float stage1 = softClip(sample * drive1);
-            float stage2 = hardClip(stage1 * drive2);
-            
-            float mixed = juce::jmap(gainParam, sample, stage2);
-            
-            float absMixed = std::abs(mixed);
-            if(absMixed > envelope)
-                envelope = absMixed;
-            else
-                envelope *= releaseRate;
-            
-            float gateGain = juce::jlimit(0.0f, 1.0f, juce::jmap(envelope, 0.0f, threshold, 0.0f, 1.0f));
-            gateGain = std::pow(gateGain, 3.0f);
-            
-            channelData[i] = mixed * gateGain;
+            for(int i = 0; i < buffer.getNumSamples(); ++i)
+            {
+                float sample = channelData[i];
+                
+                float stage1 = softClip(sample * drive1);
+                float stage2 = hardClip(stage1 * drive2);
+                
+                float mixed = juce::jmap(gainParam, sample, stage2);
+                
+                float absMixed = std::abs(mixed);
+                if(absMixed > envelope)
+                    envelope = absMixed;
+                else
+                    envelope *= releaseRate;
+                
+                float gateGain = juce::jlimit(0.0f, 1.0f, juce::jmap(envelope, 0.0f, threshold, 0.0f, 1.0f));
+                gateGain = std::pow(gateGain, 6.0f);
+                
+                channelData[i] = mixed * gateGain;
+            }
         }
     }
     
+    // Verb config
+    float verbAmount = apvts.getRawParameterValue("VERB")->load();
+    
+    reverbParams.roomSize = 0.9f;
+    reverbParams.damping = 0.6f;
+    reverbParams.wetLevel = verbAmount;
+    reverbParams.dryLevel = 1.0f - verbAmount;
+    reverbParams.width = 0.6f;
+    reverbParams.freezeMode = 0.0f;
+    
+    reverb.setParameters(reverbParams);
+    
+    if(buffer.getNumChannels() >= 2)
+    {
+        reverb.processStereo(buffer.getWritePointer(0), buffer.getWritePointer(1), buffer.getNumSamples());
+    }
+    else
+    {
+        reverb.processMono(buffer.getWritePointer(0), buffer.getNumSamples());
+    }
+
     // Vol config
     auto volDb = apvts.getRawParameterValue("VOL")->load();
     targetGain = juce::Decibels::decibelsToGain(volDb);
@@ -248,15 +272,17 @@ juce::AudioProcessorEditor* ReverberationMachineAudioProcessor::createEditor()
 //==============================================================================
 void ReverberationMachineAudioProcessor::getStateInformation (juce::MemoryBlock& destData)
 {
-    // You should use this method to store your parameters in the memory block.
-    // You could do that either as raw data, or use the XML or ValueTree classes
-    // as intermediaries to make it easy to save and load complex data.
+    copyXmlToBinary(*apvts.copyState().createXml(), destData);
 }
 
 void ReverberationMachineAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
 {
-    // You should use this method to restore your parameters from this memory block,
-    // whose contents will have been created by the getStateInformation() call.
+    std::unique_ptr<juce::XmlElement> xmlState(getXmlFromBinary(data, sizeInBytes));
+    
+    if(xmlState && xmlState->hasTagName(apvts.state.getType()))
+    {
+        apvts.replaceState(juce::ValueTree::fromXml(*xmlState));
+    }
 }
 
 //==============================================================================
