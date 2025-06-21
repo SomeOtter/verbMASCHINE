@@ -207,7 +207,6 @@ public:
 private:
     ReverberationMachineAudioProcessor& audioProcessor;
     
-    juce::FontOptions fontOptions;
     juce::Label titleLabel;
     
     CustomKnobLookAndFeel customKnobLookAndFeel;

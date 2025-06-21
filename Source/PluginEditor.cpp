@@ -11,8 +11,7 @@
 
 //==============================================================================
 ReverberationMachineAudioProcessorEditor::ReverberationMachineAudioProcessorEditor (ReverberationMachineAudioProcessor& p)
-    : AudioProcessorEditor (&p), audioProcessor (p),
-fontOptions("Helvetica Neue", 85.0f, juce::Font::bold)
+    : AudioProcessorEditor (&p), audioProcessor (p)
 {
     using SliderAttachment = juce::AudioProcessorValueTreeState::SliderAttachment;
     
@@ -25,10 +24,11 @@ fontOptions("Helvetica Neue", 85.0f, juce::Font::bold)
     
     setSize (620, 600);
     
+    juce::FontOptions titleFont("Helvetica Neue", 85.0f, juce::Font::bold);
     addAndMakeVisible(titleLabel);
-    titleLabel.setText("GRITTTTTIMER", juce::dontSendNotification);
+    titleLabel.setText("verbMASCHINE", juce::dontSendNotification);
     titleLabel.setJustificationType(juce::Justification::centred);
-    titleLabel.setFont(fontOptions);
+    titleLabel.setFont(titleFont);
     titleLabel.setColour(juce::Label::textColourId, juce::Colour::fromRGB(0, 200, 200));
     titleLabel.setColour(juce::Label::backgroundColourId, juce::Colours::transparentBlack);
     titleLabel.setInterceptsMouseClicks(true, false);

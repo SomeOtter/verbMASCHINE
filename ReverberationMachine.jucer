@@ -3,6 +3,10 @@
 <JUCERPROJECT id="Q4Z4Wv" name="ReverberationMachine" projectType="audioplug"
               useAppConfig="0" addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1">
   <MAINGROUP id="Qiatug" name="ReverberationMachine">
+    <GROUP id="{21BFDA2E-E0A9-3DC2-3A6F-4C38F2DB43C3}" name="Resources">
+      <FILE id="ziLxw2" name="Rubik80sFade.ttf" compile="0" resource="1"
+            file="Resources/Rubik80sFade.ttf"/>
+    </GROUP>
     <GROUP id="{6C654A1A-BCA7-00F4-A741-250B352C81EA}" name="Source">
       <FILE id="savPde" name="PluginProcessor.cpp" compile="1" resource="0"
             file="Source/PluginProcessor.cpp"/>
