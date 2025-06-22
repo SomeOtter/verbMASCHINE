@@ -19,6 +19,7 @@ namespace CustomColours
     static const juce::Colour offBlack = juce::Colour::fromRGB(20, 20, 20);
     static const juce::Colour darkGrey = juce::Colour::fromRGB(30, 30, 30);
     static const juce::Colour lightGrey = juce::Colour::fromRGB(200, 200, 190);
+    static const juce::Colour superGrey = juce::Colour::fromRGB(220, 220, 220);
     static const juce::Colour lightBeige = juce::Colour::fromRGB(250, 255, 220);
     static const juce::Colour aqua = juce::Colour::fromRGB(0, 200, 200);
     static const juce::Colour green = juce::Colour::fromRGB(0, 205, 0);
@@ -45,9 +46,25 @@ public:
         auto radius = size * 0.5f;
         auto center = bounds.getCentre();
         auto angle = rotaryStart + sliderPos * (rotaryEnd - rotaryStart);
-
+        
+        auto cx = center.x;
+        auto cy = center.y;
+        auto ex = center.x + radius * 1.5f;
+        auto ey = center.y;
+        
         // Main knob
         g.setColour(CustomColours::lightBeige);
+        g.fillEllipse(bounds);
+
+        juce::ColourGradient radialShadow (
+            juce::Colours::black.withAlpha(0.5f),
+            cx, cy,
+            CustomColours::lightBeige,
+            ex, ey,
+            true
+        );
+
+        g.setGradientFill(radialShadow);
         g.fillEllipse(bounds);
 
         // Inner circle
