@@ -29,8 +29,7 @@ ReverberationMachineAudioProcessorEditor::ReverberationMachineAudioProcessorEdit
     titleLabel.setText("verbMASCHINE", juce::dontSendNotification);
     titleLabel.setJustificationType(juce::Justification::centred);
     titleLabel.setFont(titleFont);
-    titleLabel.setColour(juce::Label::textColourId, juce::Colour::fromRGB(0, 200, 200));
-    titleLabel.setColour(juce::Label::backgroundColourId, juce::Colours::transparentBlack);
+    titleLabel.setColour(juce::Label::textColourId, CustomColours::aqua);
     titleLabel.setInterceptsMouseClicks(true, false);
     titleLabel.setMouseCursor(juce::MouseCursor::PointingHandCursor);
     
@@ -52,20 +51,20 @@ ReverberationMachineAudioProcessorEditor::ReverberationMachineAudioProcessorEdit
     darkLightLabel.setFont(labelFont);
     darkLightLabel.setText("DARK / LIGHT", juce::dontSendNotification);
     darkLightLabel.setJustificationType(juce::Justification::centredTop);
-    darkLightLabel.setColour(juce::Label::textColourId, juce::Colour::fromRGB(200, 200, 190));
+    darkLightLabel.setColour(juce::Label::textColourId, CustomColours::lightGrey);
     
     juce::FontOptions meterFont("Helvetica Neue", 28.0f, juce::Font::bold);
     addAndMakeVisible(inputLabel);
     inputLabel.setFont(meterFont);
     inputLabel.setText("INPUT", juce::dontSendNotification);
     inputLabel.setJustificationType(juce::Justification::centredLeft);
-    inputLabel.setColour(juce::Label::textColourId, juce::Colour::fromRGB(200, 200, 190));
+    inputLabel.setColour(juce::Label::textColourId, CustomColours::lightGrey);
     
     addAndMakeVisible(outputLabel);
     outputLabel.setFont(meterFont);
     outputLabel.setText("OUTPUT", juce::dontSendNotification);
     outputLabel.setJustificationType(juce::Justification::centredLeft);
-    outputLabel.setColour(juce::Label::textColourId, juce::Colour::fromRGB(200, 200, 190));
+    outputLabel.setColour(juce::Label::textColourId, CustomColours::lightGrey);
     
     startTimerHz(30);
     addAndMakeVisible(stereoInputMeter);
@@ -80,7 +79,7 @@ ReverberationMachineAudioProcessorEditor::ReverberationMachineAudioProcessorEdit
     tailsLabel.setFont(tailsFont);
     tailsLabel.setText("TAILS", juce::dontSendNotification);
     tailsLabel.setJustificationType(juce::Justification::topLeft);
-    tailsLabel.setColour(juce::Label::textColourId, juce::Colour::fromRGB(200, 200, 190));
+    tailsLabel.setColour(juce::Label::textColourId, CustomColours::lightGrey);
     
     volAttachment = std::make_unique<SliderAttachment>(audioProcessor.apvts, "VOL", volKnob);
     gainAttachment = std::make_unique<SliderAttachment>(audioProcessor.apvts, "GAIN", gainKnob);
@@ -99,20 +98,18 @@ ReverberationMachineAudioProcessorEditor::~ReverberationMachineAudioProcessorEdi
 //==============================================================================
 void ReverberationMachineAudioProcessorEditor::paint (juce::Graphics& g)
 {
-    using namespace juce;
-    
     // Background
-    g.fillAll(Colour::fromRGB(20, 20, 20));
+    g.fillAll(CustomColours::offBlack);
     
     // Border
-    g.setColour(Colour::fromRGB(200, 200, 190));
+    g.setColour(CustomColours::lightGrey);
     g.drawRoundedRectangle(getLocalBounds().toFloat().reduced(8), 15.0f, 4.0f);
     
     // Meter area
-    g.setColour(juce::Colour::fromRGB(27, 27, 27));
+    g.setColour(CustomColours::darkGrey);
     g.fillRoundedRectangle(row1Fill.toFloat(), 10.0f);
     
-    g.setColour(Colour::fromRGB(20, 20, 20));
+    g.setColour(CustomColours::offBlack);
     g.fillRoundedRectangle(inputFill.toFloat(), 10.0f);
     g.fillRoundedRectangle(outputFill.toFloat(), 10.0f);
 }
@@ -239,7 +236,7 @@ void ReverberationMachineAudioProcessorEditor::layoutKnobWithLabel(juce::Slider&
     label.setFont(labelFont);
     label.setText(text, juce::dontSendNotification);
     label.setJustificationType(juce::Justification::centredTop);
-    label.setColour(juce::Label::textColourId, juce::Colour::fromRGB(200, 200, 190));
+    label.setColour(juce::Label::textColourId, CustomColours::lightGrey);
     label.setBounds(area.removeFromTop(labelHeight));
 }
 
@@ -289,7 +286,7 @@ void ReverberationMachineAudioProcessorEditor::mouseUp(const juce::MouseEvent& e
             bypassParam->endChangeGesture();
 
             startColour = titleLabel.findColour(juce::Label::textColourId);
-            targetColour = newState ? juce::Colour::fromRGB(200, 200, 190) : juce::Colour::fromRGB(0, 200, 200);
+            targetColour = newState ? CustomColours::lightGrey : CustomColours::aqua;
             colourBlend = 0.0f;
             isAnimating = true;
 

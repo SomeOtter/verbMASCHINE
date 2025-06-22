@@ -13,6 +13,17 @@
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <juce_audio_basics/juce_audio_basics.h>
 
+namespace CustomColours
+{
+    static const juce::Colour offBlack = juce::Colour::fromRGB(20, 20, 20);
+    static const juce::Colour darkGrey = juce::Colour::fromRGB(27, 27, 27);
+    static const juce::Colour lightGrey = juce::Colour::fromRGB(200, 200, 190);
+    static const juce::Colour lightBeige = juce::Colour::fromRGB(250, 255, 220);
+    static const juce::Colour aqua = juce::Colour::fromRGB(0, 200, 200);
+    static const juce::Colour green = juce::Colour::fromRGB(0, 205, 0);
+    static const juce::Colour red = juce::Colour::fromRGB(230, 0, 0);
+}
+
 class CustomKnobLookAndFeel : public juce::LookAndFeel_V4
 {
 public:
@@ -31,7 +42,7 @@ public:
             auto angle = rotaryStartAngle + sliderPosProportional * (rotaryEndAngle - rotaryStartAngle);
 
             // Main knob
-            g.setColour(Colour::fromRGB(250, 255, 220));
+            g.setColour(CustomColours::lightBeige);
             g.fillEllipse(bounds);
 
             // Inner circle
@@ -39,9 +50,9 @@ public:
             float lineWidth = radius * 0.06f;
             Rectangle<float> innerBounds(center.x - innerRadius, center.y - innerRadius,
                                          innerRadius * 2, innerRadius * 2);
-            g.setColour(Colour::fromRGB(200, 200, 190));
+            g.setColour(CustomColours::lightGrey);
             g.fillEllipse(innerBounds);
-            g.setColour(Colour::fromRGB(27, 27, 27));
+            g.setColour(CustomColours::darkGrey);
             g.drawEllipse(innerBounds, lineWidth);
             
             // Pointer
@@ -52,7 +63,7 @@ public:
             pointer.addRectangle(-pointerThickness * 0.5f, -(radius),
                                  pointerThickness, pointerLength);
             
-            g.setColour(Colour::fromRGB(27, 27, 27));
+            g.setColour(CustomColours::darkGrey);
             g.fillPath(pointer, AffineTransform::rotation(angle).translated(center.x, center.y));
         }
 };
@@ -104,7 +115,7 @@ public:
             fillTriangle.lineTo(baseRight, baseY);
             fillTriangle.closeSubPath();
             
-            g.setColour(Colour::fromRGB(200, 200, 190));
+            g.setColour(CustomColours::lightGrey);
             g.fillPath(fillTriangle);
         }
 
@@ -114,7 +125,7 @@ public:
         outlineTriangle.lineTo(baseRight, baseY);
         outlineTriangle.closeSubPath();
 
-        g.setColour(Colour::fromRGB(200, 200, 190));
+        g.setColour(CustomColours::lightGrey);
         g.strokePath(outlineTriangle, PathStrokeType(3.0f));
     }
     
@@ -140,7 +151,7 @@ public:
         {
             juce::FontOptions dbFont("Helvetica Neue", 10.0f, juce::Font::bold);
             label.setJustificationType(juce::Justification::centredLeft);
-            label.setColour(juce::Label::textColourId, juce::Colour::fromRGB(200, 200, 190));
+            label.setColour(juce::Label::textColourId, CustomColours::lightGrey);
             label.setFont(dbFont);
             label.setInterceptsMouseClicks(false, false);
         };
@@ -248,17 +259,17 @@ private:
                       float level,
                       float& clipOpacity)
     {
-        g.setColour(juce::Colour::fromRGB(200, 200, 190));
+        g.setColour(CustomColours::lightGrey);
         g.fillRect(area);
         
         const float fillWidth = area.getWidth() * level;
-        g.setColour(juce::Colour::fromRGB(0, 205, 0).withAlpha(1.0f));
+        g.setColour(CustomColours::green);
         g.fillRect(area.withWidth(fillWidth));
         
         if(clipOpacity > 0.0f)
         {
             const float clipWidth = juce::jlimit(0.0f, area.getWidth(), level * 20.0f);
-            g.setColour(juce::Colour::fromRGB(230, 0, 0));
+            g.setColour(CustomColours::red);
             g.fillRect(area.withX(area.getRight() - clipWidth).withWidth(clipWidth));
         }
     }
@@ -286,7 +297,7 @@ public:
     {
         auto area = getLocalBounds().toFloat().reduced(4.0f);
         
-        g.setColour(juce::Colour::fromRGB(200, 200, 190));
+        g.setColour(CustomColours::lightGrey);
         g.fillRect(area);
         
         float level = juce::jmax(smoothedL, smoothedR);
@@ -299,7 +310,7 @@ public:
         float fillRatio = juce::jlimit(0.0f, 1.0f, decayShape(level));
         float fillWidth = area.getWidth() * fillRatio;
         
-        g.setColour(juce::Colour::fromRGB(0, 200, 200));
+        g.setColour(CustomColours::aqua);
         g.fillRect(area.removeFromLeft(fillWidth));
     }
     
@@ -359,8 +370,8 @@ private:
     
     void layoutKnobWithLabel(juce::Slider&, juce::Label&, const juce::String&, juce::Rectangle<int>);
     
-    juce::Colour startColour = juce::Colour::fromRGB(0, 200, 200);
-    juce::Colour targetColour = juce::Colour::fromRGB(200, 200, 190);
+    juce::Colour startColour = CustomColours::aqua;
+    juce::Colour targetColour = CustomColours::lightGrey;
     float colourBlend = 0.0f;
     bool isAnimating = false;
 
