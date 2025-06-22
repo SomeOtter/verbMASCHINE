@@ -10,6 +10,8 @@
             file="Resources/Rubik80sFade.ttf"/>
     </GROUP>
     <GROUP id="{6C654A1A-BCA7-00F4-A741-250B352C81EA}" name="Source">
+      <FILE id="PqliLn" name="CustomKnob.cpp" compile="1" resource="0" file="Source/CustomKnob.cpp"/>
+      <FILE id="lcWIik" name="CustomKnob.h" compile="0" resource="0" file="Source/CustomKnob.h"/>
       <FILE id="savPde" name="PluginProcessor.cpp" compile="1" resource="0"
             file="Source/PluginProcessor.cpp"/>
       <FILE id="QydjIv" name="PluginProcessor.h" compile="0" resource="0"

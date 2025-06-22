@@ -12,11 +12,12 @@
 #include "PluginProcessor.h"
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <juce_audio_basics/juce_audio_basics.h>
+#include "CustomKnob.h"
 
 namespace CustomColours
 {
     static const juce::Colour offBlack = juce::Colour::fromRGB(20, 20, 20);
-    static const juce::Colour darkGrey = juce::Colour::fromRGB(27, 27, 27);
+    static const juce::Colour darkGrey = juce::Colour::fromRGB(30, 30, 30);
     static const juce::Colour lightGrey = juce::Colour::fromRGB(200, 200, 190);
     static const juce::Colour lightBeige = juce::Colour::fromRGB(250, 255, 220);
     static const juce::Colour aqua = juce::Colour::fromRGB(0, 200, 200);
@@ -27,45 +28,76 @@ namespace CustomColours
 class CustomKnobLookAndFeel : public juce::LookAndFeel_V4
 {
 public:
-    void drawRotarySlider (juce::Graphics& g, int x, int y, int width, int height,
-                               float sliderPosProportional, float rotaryStartAngle,
-                               float rotaryEndAngle, juce::Slider& slider) override
+    void drawRotarySlider(juce::Graphics& g,
+                          int x,
+                          int y,
+                          int width,
+                          int height,
+                          float sliderPos,
+                          float rotaryStart,
+                          float rotaryEnd,
+                          juce::Slider& slider) override
+    {
+        auto rawBounds = juce::Rectangle<float>(x, y, width, height).toFloat();
+        auto size = juce::jmin(rawBounds.getWidth(), rawBounds.getHeight());
+        auto bounds = juce::Rectangle<float>(size, size).withCentre(rawBounds.getCentre());
+        
+        auto radius = size * 0.5f;
+        auto center = bounds.getCentre();
+        auto angle = rotaryStart + sliderPos * (rotaryEnd - rotaryStart);
+
+        // Main knob
+        g.setColour(CustomColours::lightBeige);
+        g.fillEllipse(bounds);
+
+        // Inner circle
+        float innerRadius = radius * 0.5f;
+        float lineWidth = radius * 0.06f;
+        juce::Rectangle<float> innerBounds(center.x - innerRadius,
+                                           center.y - innerRadius,
+                                           innerRadius * 2, innerRadius * 2);
+        
+        g.setColour(CustomColours::lightGrey);
+        g.fillEllipse(innerBounds);
+        g.setColour(CustomColours::darkGrey);
+        g.drawEllipse(innerBounds, lineWidth);
+        
+        // Pointer
+        juce::Path pointer;
+        float pointerLength = radius * 0.5f;
+        float pointerThickness = lineWidth;
+        
+        pointer.addRectangle(-pointerThickness * 0.5f, -(radius),
+                             pointerThickness, pointerLength);
+        
+        g.setColour(CustomColours::darkGrey);
+        g.fillPath(pointer, juce::AffineTransform::rotation(angle).translated(center.x, center.y));
+        
+        if(auto* knob = dynamic_cast<struct CustomKnob*>(&slider))
         {
-            using namespace juce;
-                    
-            auto rawBounds = Rectangle<float>(x, y, width, height).toFloat();
-            auto size = jmin(rawBounds.getWidth(), rawBounds.getHeight());
-            auto bounds = Rectangle<float>(size, size).withCentre(rawBounds.getCentre());
+            auto leftLabel = knob->getDisplayMin();
+            auto rightLabel = knob->getDisplayMax();
             
-            auto radius = size / 2.0f;
-            auto center = bounds.getCentre();
-            auto angle = rotaryStartAngle + sliderPosProportional * (rotaryEndAngle - rotaryStartAngle);
-
-            // Main knob
-            g.setColour(CustomColours::lightBeige);
-            g.fillEllipse(bounds);
-
-            // Inner circle
-            float innerRadius = radius * 0.5f;
-            float lineWidth = radius * 0.06f;
-            Rectangle<float> innerBounds(center.x - innerRadius, center.y - innerRadius,
-                                         innerRadius * 2, innerRadius * 2);
-            g.setColour(CustomColours::lightGrey);
-            g.fillEllipse(innerBounds);
-            g.setColour(CustomColours::darkGrey);
-            g.drawEllipse(innerBounds, lineWidth);
-            
-            // Pointer
-            Path pointer;
-            float pointerLength = radius * 0.5f;
-            float pointerThickness = lineWidth;
-            
-            pointer.addRectangle(-pointerThickness * 0.5f, -(radius),
-                                 pointerThickness, pointerLength);
-            
-            g.setColour(CustomColours::darkGrey);
-            g.fillPath(pointer, AffineTransform::rotation(angle).translated(center.x, center.y));
+            if(leftLabel.isNotEmpty() && rightLabel.isNotEmpty())
+            {
+                float labelR = radius + 18.0f;
+                auto posL = center.getPointOnCircumference(labelR, rotaryStart + 0.2f);
+                auto posR = center.getPointOnCircumference(labelR, rotaryEnd - 0.2f);
+                
+                juce::FontOptions labelFont("Helvetica Neue", (radius * 0.18f) * 1.5f, juce::Font::bold);
+                g.setColour(CustomColours::lightGrey);
+                g.setFont(juce::Font(labelFont));
+                
+                g.drawFittedText(leftLabel, juce::Rectangle<int>((int)posL.x -20,
+                                            (int)posL.y -10, 40, 20),
+                                            juce::Justification::centred, 1);
+                
+                g.drawFittedText(rightLabel, juce::Rectangle<int>((int)posR.x -20,
+                                            (int)posR.y -10, 40, 20),
+                                            juce::Justification::centred, 1);
+            }
         }
+    }
 };
 
 class VisualiserComponent : public juce::Component, private juce::Timer
@@ -79,16 +111,14 @@ public:
     
     void paint(juce::Graphics& g) override
     {
-        using namespace juce;
-        
         float padLeft = 50.0f;
         float padRight = 5.0f;
 
         auto localBounds = getLocalBounds().toFloat();
-        auto bounds = Rectangle<float>(localBounds.getX() + padLeft,
-                                       localBounds.getY(),
-                                       localBounds.getWidth() - (padLeft + padRight),
-                                       localBounds.getHeight());
+        auto bounds = juce::Rectangle<float>(localBounds.getX() + padLeft,
+                                             localBounds.getY(),
+                                             localBounds.getWidth() - (padLeft + padRight),
+                                             localBounds.getHeight());
         
         float gain = juce::jlimit(0.0f, 1.0f, getGain());
         float verb = juce::jlimit(0.0f, 1.0f, getVerb());
@@ -105,11 +135,11 @@ public:
         float topY = baseY - maxHeight;
         float currentTopY = baseY - fillHeight;
         
-        float topX = jmap(verb, centerX, baseRight);
+        float topX = juce::jmap(verb, centerX, baseRight);
         
         if(gain > 0.0f)
         {
-            Path fillTriangle;
+            juce::Path fillTriangle;
             fillTriangle.startNewSubPath(topX, currentTopY);
             fillTriangle.lineTo(baseLeft, baseY);
             fillTriangle.lineTo(baseRight, baseY);
@@ -119,14 +149,14 @@ public:
             g.fillPath(fillTriangle);
         }
 
-        Path outlineTriangle;
+        juce::Path outlineTriangle;
         outlineTriangle.startNewSubPath(topX, topY);
         outlineTriangle.lineTo(baseLeft, baseY);
         outlineTriangle.lineTo(baseRight, baseY);
         outlineTriangle.closeSubPath();
 
         g.setColour(CustomColours::lightGrey);
-        g.strokePath(outlineTriangle, PathStrokeType(3.0f));
+        g.strokePath(outlineTriangle, juce::PathStrokeType(3.0f));
     }
     
 private:
@@ -337,21 +367,17 @@ public:
     //==============================================================================
     void paint (juce::Graphics&) override;
     void resized() override;
+    void layoutKnobWithLabel(juce::Slider&, juce::Label&, const juce::String&, juce::Rectangle<int>);
     void mouseUp(const juce::MouseEvent& event) override;
     void timerCallback() override;
 
 private:
     ReverberationMachineAudioProcessor& audioProcessor;
     
-    juce::Label titleLabel;
-    
     CustomKnobLookAndFeel customKnobLookAndFeel;
     
-    juce::Slider volKnob, gainKnob, verbKnob;
-    juce::Label volLabel, gainLabel, verbLabel;
-    
-    juce::Slider darkLightKnob;
-    juce::Label darkLightLabel;
+    CustomKnob volKnob, gainKnob, verbKnob, darkLightKnob;
+    juce::Label titleLabel, volLabel, gainLabel, verbLabel, darkLightLabel;
     
     std::unique_ptr<VisualiserComponent> visualiser;
     
@@ -367,8 +393,6 @@ private:
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> gainAttachment;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> verbAttachment;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> darkLightAttachment;
-    
-    void layoutKnobWithLabel(juce::Slider&, juce::Label&, const juce::String&, juce::Rectangle<int>);
     
     juce::Colour startColour = CustomColours::aqua;
     juce::Colour targetColour = CustomColours::lightGrey;

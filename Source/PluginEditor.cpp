@@ -36,15 +36,15 @@ ReverberationMachineAudioProcessorEditor::ReverberationMachineAudioProcessorEdit
     addAndMakeVisible(volKnob);
     addAndMakeVisible(gainKnob);
     addAndMakeVisible(verbKnob);
+    addAndMakeVisible(darkLightKnob);
+    
+    volKnob.setDisplayValues("-48", "+12");
+    gainKnob.setDisplayValues("0%", "100%");
+    verbKnob.setDisplayValues("0%", "125%");
     
     addAndMakeVisible(volLabel);
     addAndMakeVisible(gainLabel);
     addAndMakeVisible(verbLabel);
-    
-    addAndMakeVisible(darkLightKnob);
-    darkLightKnob.setSliderStyle(juce::Slider::SliderStyle::RotaryHorizontalVerticalDrag);
-    darkLightKnob.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
-    darkLightKnob.setLookAndFeel(&customKnobLookAndFeel);
     
     juce::FontOptions labelFont("Helvetica Neue", 15.0f, juce::Font::bold);
     addAndMakeVisible(darkLightLabel);
@@ -84,7 +84,7 @@ ReverberationMachineAudioProcessorEditor::ReverberationMachineAudioProcessorEdit
     volAttachment = std::make_unique<SliderAttachment>(audioProcessor.apvts, "VOL", volKnob);
     gainAttachment = std::make_unique<SliderAttachment>(audioProcessor.apvts, "GAIN", gainKnob);
     verbAttachment = std::make_unique<SliderAttachment>(audioProcessor.apvts, "VERB", verbKnob);
-    darkLightAttachment = std::make_unique<SliderAttachment>(audioProcessor.apvts, "DARK_LIGHT", darkLightKnob);
+    darkLightAttachment = std::make_unique<SliderAttachment>(audioProcessor.apvts, "DARK_LIGHT",                                                                                    darkLightKnob);
 }
 
 ReverberationMachineAudioProcessorEditor::~ReverberationMachineAudioProcessorEditor()
