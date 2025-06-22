@@ -396,6 +396,7 @@ void ReverberationMachineAudioProcessor::processBlock (juce::AudioBuffer<float>&
         float tailEnvL = 0.0f;
         float tailEnvR = 0.0f;
         const float tailRelease = 0.9995;
+        float verbAmount = apvts.getRawParameterValue("VERB")->load();
         
         for(int i = 0; i < wetBuffer.getNumSamples(); ++i)
         {
@@ -406,13 +407,15 @@ void ReverberationMachineAudioProcessor::processBlock (juce::AudioBuffer<float>&
             
             tailEnvL = std::max(tailSampleL, tailEnvL * tailRelease);
             tailEnvR = std::max(tailSampleR, tailEnvR * tailRelease);
+            
+            float scaledTailL = tailEnvL * verbAmount;
+            float scaledTailR = tailEnvR * verbAmount;
+            
+            tailLevelL.store(scaledTailL);
+            tailLevelR.store(scaledTailR);
         }
-        
-        tailLevelL.store(tailEnvL);
-        tailLevelR.store(tailEnvR);
 
         // === Final Wet/Dry Mix === //
-        float verbAmount = apvts.getRawParameterValue("VERB")->load();
         for (int channel = 0; channel < buffer.getNumChannels(); ++channel)
         {
             auto* wet = wetBuffer.getReadPointer(channel);

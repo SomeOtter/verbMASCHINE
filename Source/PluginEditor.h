@@ -289,13 +289,18 @@ public:
         g.setColour(juce::Colour::fromRGB(200, 200, 190));
         g.fillRect(area);
         
-        auto top = area.removeFromTop(area.getHeight() * 0.5f);
+        float level = juce::jmax(smoothedL, smoothedR);
+        
+        auto decayShape = [](float x)
+        {
+            return std::pow(x, 0.5f);
+        };
+        
+        float fillRatio = juce::jlimit(0.0f, 1.0f, decayShape(level));
+        float fillWidth = area.getWidth() * fillRatio;
         
         g.setColour(juce::Colour::fromRGB(0, 200, 200));
-        g.fillRect(top.withWidth(area.getWidth() * smoothedL));
-        
-        g.setColour(juce::Colours::purple.withAlpha(0.6f));
-        g.fillRect(area.withWidth(area.getWidth() * smoothedR));
+        g.fillRect(area.removeFromLeft(fillWidth));
     }
     
 private:
