@@ -67,11 +67,20 @@ ReverberationMachineAudioProcessorEditor::ReverberationMachineAudioProcessorEdit
     outputLabel.setJustificationType(juce::Justification::centredLeft);
     outputLabel.setColour(juce::Label::textColourId, juce::Colour::fromRGB(200, 200, 190));
     
-    addAndMakeVisible(inputMeterL);
-    addAndMakeVisible(inputMeterR);
-    addAndMakeVisible(outputMeterL);
-    addAndMakeVisible(outputMeterR);
     startTimerHz(30);
+    addAndMakeVisible(stereoInputMeter);
+    addAndMakeVisible(stereoOutputMeter);
+    stereoInputMeter.setChannelSpacing(6.0f);
+    stereoOutputMeter.setChannelSpacing(6.0f);
+    stereoInputMeter.setChannelHeight(4.0f);
+    
+    juce::FontOptions tailsFont("Helvetica Neue", 24.0f, juce::Font::bold);
+    addAndMakeVisible(tailMeter);
+    addAndMakeVisible(tailsLabel);
+    tailsLabel.setFont(tailsFont);
+    tailsLabel.setText("TAILS", juce::dontSendNotification);
+    tailsLabel.setJustificationType(juce::Justification::topLeft);
+    tailsLabel.setColour(juce::Label::textColourId, juce::Colour::fromRGB(200, 200, 190));
     
     volAttachment = std::make_unique<SliderAttachment>(audioProcessor.apvts, "VOL", volKnob);
     gainAttachment = std::make_unique<SliderAttachment>(audioProcessor.apvts, "GAIN", gainKnob);
@@ -97,69 +106,82 @@ void ReverberationMachineAudioProcessorEditor::paint (juce::Graphics& g)
     
     // Border
     g.setColour(Colour::fromRGB(200, 200, 190));
-    g.drawRoundedRectangle(getLocalBounds().toFloat().reduced(8), 15.f, 4.f);
+    g.drawRoundedRectangle(getLocalBounds().toFloat().reduced(8), 15.0f, 4.0f);
     
     // Meter area
     g.setColour(juce::Colour::fromRGB(27, 27, 27));
-    g.fillRoundedRectangle(row1Fill.toFloat(), 15.f);
+    g.fillRoundedRectangle(row1Fill.toFloat(), 10.0f);
+    
+    g.setColour(Colour::fromRGB(20, 20, 20));
+    g.fillRoundedRectangle(inputFill.toFloat(), 10.0f);
+    g.fillRoundedRectangle(outputFill.toFloat(), 10.0f);
 }
 
 void ReverberationMachineAudioProcessorEditor::resized()
 {
+    // Main split into 4 rows
     auto bounds = getLocalBounds().reduced(15);
     const int totalRows = 4;
     auto rowHeight = bounds.getHeight() / totalRows;
 
-    auto row1 = bounds.removeFromTop(rowHeight);
-    row1Fill = row1.reduced(10);
-
-    const int padding = 25;
-    const int meterWidth = 140;
-    const int meterHeight = 5;
-    const int meterSpacing = 8;
-
-    // Calculate text widths using GlyphArrangement for precision
-    auto getTextWidth = [](const juce::String& text, const juce::Font& font) -> int {
-        juce::GlyphArrangement glyphs;
-        glyphs.addLineOfText(font, text, 0.0f, 0.0f);
-        return static_cast<int>(glyphs.getBoundingBox(0, glyphs.getNumGlyphs(), true).getWidth()) + 8; // +gap
-    };
-
-    const int inputTextWidth  = getTextWidth("INPUT", inputLabel.getFont());
-    const int outputTextWidth = getTextWidth("OUTPUT", outputLabel.getFont());
-    const int labelWidth = juce::jmax(inputTextWidth, outputTextWidth + 30);
-    const int gapBetweenLabelAndMeter = 10;
-
-    int y = row1.getCentreY() - ((2 * meterHeight + meterSpacing) / 2);
-
-    // Input Half
-    {
-        auto inputArea = row1.removeFromLeft(row1.getWidth() / 2).reduced(padding, 0);
-
-        juce::Rectangle<int> labelBounds = inputArea.removeFromLeft(labelWidth);
-        inputLabel.setBounds(labelBounds.withY(y).withHeight(2 * meterHeight + meterSpacing));
-        inputLabel.setJustificationType(juce::Justification::centredLeft);
-
-        // Meter sits immediately to the right of label
-        auto meterX = labelBounds.getRight() + gapBetweenLabelAndMeter;
-        inputMeterL.setBounds(meterX, y, meterWidth, meterHeight);
-        inputMeterR.setBounds(meterX, y + meterHeight + meterSpacing, meterWidth, meterHeight);
-    }
-
-    // Output Half
-    {
-        auto outputArea = row1.reduced(padding, 0);  // Remaining right half
-
-        juce::Rectangle<int> labelBounds = outputArea.removeFromLeft(labelWidth);
-        outputLabel.setBounds(labelBounds.withY(y).withHeight(2 * meterHeight + meterSpacing));
-        outputLabel.setJustificationType(juce::Justification::centredLeft);
-
-        auto meterX = labelBounds.getRight() + gapBetweenLabelAndMeter;
-        outputMeterL.setBounds(meterX, y, meterWidth, meterHeight);
-        outputMeterR.setBounds(meterX, y + meterHeight + meterSpacing, meterWidth, meterHeight);
-    }
-
+    // === Row 1 === //
+    auto row1 = bounds.removeFromTop(rowHeight).reduced(5);
+    row1Fill = row1;
     
+    const float inoutHeight = row1.getHeight() * 0.75f;
+    auto inoutBounds = row1.removeFromTop(inoutHeight).reduced(5);
+    inoutBounds = inoutBounds.withSizeKeepingCentre(inoutBounds.getWidth() * 0.95,
+                                                    inoutBounds.getHeight());
+    
+    const float channelHeight = inoutBounds.getHeight() * 0.45f;
+    const float gap = inoutBounds.getHeight() * 0.06f;
+    juce::Rectangle<int> gapBounds;
+    
+    auto inputBounds = inoutBounds.removeFromTop(channelHeight);
+    gapBounds = inoutBounds.removeFromTop(gap);
+    auto outputBounds = inoutBounds.removeFromTop(channelHeight);
+    
+    inputFill = inputBounds;
+    outputFill = outputBounds;
+    
+    // Labels
+    auto textBoundsWidth = [](juce::Rectangle<int> bounds)
+    {
+        return bounds.getWidth() * 0.25f;
+    };
+    
+    auto inputTextBounds = inputBounds.removeFromLeft(textBoundsWidth(inputBounds));
+    inputTextBounds = inputTextBounds.reduced(5);
+    auto outputTextBounds = outputBounds.removeFromLeft(textBoundsWidth(outputBounds));
+    outputTextBounds = outputTextBounds.reduced(5);
+    
+    inputLabel.setBounds(inputTextBounds);
+    inputLabel.setJustificationType(juce::Justification::centredLeft);
+    outputLabel.setBounds(outputTextBounds);
+    outputLabel.setJustificationType(juce::Justification::centredLeft);
+    
+    // Level Meters
+    auto inputMeterBounds = inputBounds;
+    auto outputMeterBounds = outputBounds;
+    inputMeterBounds = inputMeterBounds.withSizeKeepingCentre(
+        inputMeterBounds.getWidth() * 0.95, inputMeterBounds.getHeight());
+    outputMeterBounds = outputMeterBounds.withSizeKeepingCentre(
+        outputMeterBounds.getWidth() * 0.95, outputMeterBounds.getHeight());
+    
+    stereoInputMeter.setBounds(inputMeterBounds);
+    stereoOutputMeter.setBounds(outputMeterBounds);
+    
+    // Tails Meter
+    auto tailBounds = row1.withSizeKeepingCentre(row1.getWidth() * 0.91f, row1.getHeight());
+    auto tailsLabelBounds = tailBounds.removeFromLeft(tailBounds.getWidth() * 0.12f);
+    auto tailMeterBounds = tailBounds.withSizeKeepingCentre(tailBounds.getWidth(),
+                                                            tailBounds.getHeight() * 0.65f);
+    tailMeterBounds.setY(tailBounds.getY() + 3.5f);
+    
+    tailsLabel.setBounds(tailsLabelBounds);
+    tailMeter.setBounds(tailMeterBounds);
+    
+    // === Row 2 === //
     auto row2 = bounds.removeFromTop(rowHeight);
     {
         auto visualArea = row2.removeFromLeft(row2.getWidth() * 2 / 3);
@@ -170,16 +192,15 @@ void ReverberationMachineAudioProcessorEditor::resized()
         int totalHeight = darkLightArea.getHeight();
         int knobHeight = totalHeight * 0.5f;
 
-        // Get area for toggle
         auto knobBounds = darkLightArea.removeFromTop(knobHeight);
         darkLightKnob.setBounds(knobBounds);
 
-        // Directly below the toggle, no extra space
         auto labelBounds = darkLightArea.reduced(15);
         darkLightLabel.setBounds(labelBounds);
         darkLightLabel.setJustificationType(juce::Justification::centredTop);
     }
     
+    // === Row 3 === //
     auto row3 = bounds.removeFromTop(rowHeight);
     {
         auto knobWidth = row3.getWidth() / 3;
@@ -193,6 +214,7 @@ void ReverberationMachineAudioProcessorEditor::resized()
         layoutKnobWithLabel(verbKnob, verbLabel, "VERB", verbArea);
     }
     
+    // === Row 4 === //
     auto row4 = bounds;
     titleLabel.setBounds(row4);
 }
@@ -224,10 +246,15 @@ void ReverberationMachineAudioProcessorEditor::layoutKnobWithLabel(juce::Slider&
 void ReverberationMachineAudioProcessorEditor::timerCallback()
 {
     // Meter Updates
-    inputMeterL.setLevel(audioProcessor.inputLevelL.load());
-    inputMeterR.setLevel(audioProcessor.inputLevelR.load());
-    outputMeterL.setLevel(audioProcessor.outputLevelL.load());
-    outputMeterR.setLevel(audioProcessor.outputLevelR.load());
+    stereoInputMeter.setRawLevels(
+                               audioProcessor.inputLevelL.load(),
+                               audioProcessor.inputLevelR.load());
+    stereoOutputMeter.setRawLevels(
+                               audioProcessor.outputLevelL.load(),
+                               audioProcessor.outputLevelR.load());
+    
+    tailMeter.setRawTailLevels(audioProcessor.tailLevelL.load(),
+                               audioProcessor.tailLevelR.load());
     
     // Text Animation
     if (!isAnimating)
@@ -240,7 +267,6 @@ void ReverberationMachineAudioProcessorEditor::timerCallback()
     {
         colourBlend = 1.0f;
         isAnimating = false;
-        stopTimer();
     }
 
     auto blended = startColour.interpolatedWith(targetColour, colourBlend);

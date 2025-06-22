@@ -214,233 +214,263 @@ void ReverberationMachineAudioProcessor::processBlock (juce::AudioBuffer<float>&
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
         buffer.clear (i, 0, buffer.getNumSamples());
     
-    bool isBypassed = apvts.getRawParameterValue("BYPASS")->load() >= 0.5f;
-    if(isBypassed)
-        return;
-    
-    float inL = buffer.getRMSLevel(0, 0, buffer.getNumSamples());
-    float inR = buffer.getNumChannels() > 1 ? buffer.getRMSLevel(1, 0, buffer.getNumSamples()) : inL;
-    inputLevelL.store(inL);
-    inputLevelR.store(inR);
-
+    juce::AudioBuffer<float> bypassBuffer;
+    bypassBuffer.makeCopyOf(buffer);
     juce::AudioBuffer<float> dryBuffer;
     dryBuffer.makeCopyOf(buffer);
-    
     juce::AudioBuffer<float> processedDryBuffer;
     processedDryBuffer.makeCopyOf(dryBuffer);
     
-    // === Gain on processedDryBuffer === //
-    float gainParam = apvts.getRawParameterValue("GAIN")->load();
-    float shaped = std::pow(gainParam, 2.2f);
-    float drive1 = juce::jmap(shaped, 1.0f, 8.0f);
-    float drive2 = juce::jmap(shaped, 1.0f, 2.5f);
-
-    float gateThreshold = 0.01f;
-    float gateReleaseRate = 0.9995f;
-    float gateAttackRate = 0.3f;
-    static float envelopeL = 0.0f;
-    static float envelopeR = 0.0f;
-
-    auto softClip = [](float x) { return x / (1.0f + std::abs(x)); };
-    auto hardClip = [](float x) { return juce::jlimit(-0.4f, 0.4f, x); };
-
-    if (gainParam > 0.0001f)
+    bool isBypassed = apvts.getRawParameterValue("BYPASS")->load() >= 0.5f;
+    if(!isBypassed)
     {
-        for (int channel = 0; channel < processedDryBuffer.getNumChannels(); ++channel)
+        // === Gain on processedDryBuffer === //
+        float gainParam = apvts.getRawParameterValue("GAIN")->load();
+        float shaped = std::pow(gainParam, 2.2f);
+        float drive1 = juce::jmap(shaped, 1.0f, 8.0f);
+        float drive2 = juce::jmap(shaped, 1.0f, 2.5f);
+
+        float gateThreshold = 0.01f;
+        float gateReleaseRate = 0.9995f;
+        float gateAttackRate = 0.3f;
+        static float gateEnvL = 0.0f;
+        static float gateEnvR = 0.0f;
+
+        auto softClip = [](float x) { return x / (1.0f + std::abs(x)); };
+        auto hardClip = [](float x) { return juce::jlimit(-0.4f, 0.4f, x); };
+
+        if (gainParam > 0.0001f)
         {
-            auto* channelData = processedDryBuffer.getWritePointer(channel);
-            float& envelope = (channel == 0) ? envelopeL : envelopeR;
-            
-            for (int i = 0; i < processedDryBuffer.getNumSamples(); ++i)
+            for (int channel = 0; channel < processedDryBuffer.getNumChannels(); ++channel)
             {
-                float sample = channelData[i];
+                auto* channelData = processedDryBuffer.getWritePointer(channel);
+                float& envelope = (channel == 0) ? gateEnvL : gateEnvR;
                 
-                float stage1 = softClip(sample * drive1);
-                float stage2 = hardClip(stage1 * drive2);
-                float mixed = juce::jmap(gainParam, sample, stage2);
-                
-                float absMixed = std::abs(mixed);
-                envelope = (absMixed > envelope)
-                ? gateAttackRate * absMixed + (1.0f - gateAttackRate) * envelope
-                : gateReleaseRate;
+                for (int i = 0; i < processedDryBuffer.getNumSamples(); ++i)
+                {
+                    float sample = channelData[i];
                     
-                float gainCurve = juce::jlimit(0.0f, 1.0f, (envelope - gateThreshold) / (0.05f - gateThreshold));
-                gainCurve = std::pow(gainCurve, 2.0f);
-                
-                channelData[i] = mixed * gainCurve;
+                    float stage1 = softClip(sample * drive1);
+                    float stage2 = hardClip(stage1 * drive2);
+                    float mixed = juce::jmap(gainParam, sample, stage2);
+                    
+                    float absMixed = std::abs(mixed);
+                    envelope = (absMixed > envelope)
+                    ? gateAttackRate * absMixed + (1.0f - gateAttackRate) * envelope
+                    : gateReleaseRate;
+                        
+                    float gainCurve = juce::jlimit(0.0f, 1.0f, (envelope - gateThreshold) / (0.05f - gateThreshold));
+                    gainCurve = std::pow(gainCurve, 2.0f);
+                    
+                    channelData[i] = mixed * gainCurve;
+                }
+            }
+        }
+
+        juce::AudioBuffer<float> wetBuffer;
+        wetBuffer.makeCopyOf(processedDryBuffer);
+        
+        // === Reverb Predelay === //
+        for(int i = 0; i < wetBuffer.getNumSamples(); ++i)
+        {
+            float sampleL = wetBuffer.getSample(0, i);
+            float sampleR = wetBuffer.getNumChannels() > 1 ? wetBuffer.getSample(1, i) : sampleL;
+            
+            preDelayL.pushSample(0, sampleL);
+            preDelayR.pushSample(0, sampleR);
+            
+            float delayedL = preDelayL.popSample(0);
+            float delayedR = preDelayR.popSample(0);
+            
+            wetBuffer.setSample(0, i, delayedL);
+            if (wetBuffer.getNumChannels() > 1)
+                wetBuffer.setSample(1, i, delayedR);
+        }
+
+        // === Reverb and Filtering === //
+        reverbParams.roomSize = 0.95f;
+        reverbParams.damping = 0.1f;
+        reverbParams.wetLevel = 1.0f;
+        reverbParams.dryLevel = 0.0f;
+        reverbParams.width = 0.8f;
+        reverbParams.freezeMode = 0.0f;
+        
+        reverbL.setParameters(reverbParams);
+        reverbR.setParameters(reverbParams);
+
+        juce::dsp::AudioBlock<float> block(wetBuffer);
+        auto blockL = block.getSingleChannelBlock(0);
+        auto blockR = block.getSingleChannelBlock(1);
+        juce::dsp::ProcessContextReplacing<float> contextL(blockL);
+        juce::dsp::ProcessContextReplacing<float> contextR(blockR);
+        
+        reverbL.processMono(wetBuffer.getWritePointer(0), wetBuffer.getNumSamples());
+        reverbHighCutL.process(contextL);
+
+        if (wetBuffer.getNumChannels() > 1)
+            {
+                reverbR.processMono(wetBuffer.getWritePointer(1), wetBuffer.getNumSamples());
+                reverbHighCutR.process(contextR);
+            }
+
+        auto mapTailCutoff = [](float level)
+        {
+            float db = juce::Decibels::gainToDecibels(level + 1e-5f);
+            db = juce::jlimit(-60.0f, 0.0f, db);
+            
+            float norm = juce::jmap(db, -60.0f, 0.0f, 1.0f, 0.0f);
+            float shapedNorm = std::pow(norm, 2.5f);
+            
+            return juce::jmap(shapedNorm, 40.0f, 6000.0f);
+        };
+
+        float tailsReleaseRate = 0.9995f;
+        
+        for(int i = 0; i < wetBuffer.getNumSamples(); ++i)
+        {
+            float sampleL = std::abs(wetBuffer.getSample(0, i));
+            float sampleR = wetBuffer.getNumChannels() > 1 ? std::abs(wetBuffer.getSample(1, i)) : sampleL;
+            
+            tailEnvelopeL = std::max(sampleL, tailEnvelopeL * tailsReleaseRate);
+            tailEnvelopeR = std::max(sampleR, tailEnvelopeR * tailsReleaseRate);
+        }
+        
+        tailCutoffL.setTargetValue(mapTailCutoff(tailEnvelopeL));
+        tailCutoffR.setTargetValue(mapTailCutoff(tailEnvelopeR));
+        
+        for(int i = 0; i < wetBuffer.getNumSamples(); ++i)
+        {
+            float cutoffL = tailCutoffL.getNextValue();
+            float cutoffR = tailCutoffR.getNextValue();
+            
+            tailFilterL.setCutoffFrequency(cutoffL);
+            tailFilterR.setCutoffFrequency(cutoffR);
+            
+            float wetSampleL = wetBuffer.getSample(0, i);
+            float wetSampleR = wetBuffer.getNumChannels() > 1 ? wetBuffer.getSample(1, i) : wetSampleL;
+            
+            wetSampleL = tailFilterL.processSample(0, wetSampleL);
+            if(wetBuffer.getNumChannels() > 1)
+            {
+                wetSampleR = tailFilterR.processSample(0, wetSampleR);
+            }
+            
+            wetBuffer.setSample(0, i, wetSampleL);
+            if (wetBuffer.getNumChannels() > 1)
+                wetBuffer.setSample(1, i, wetSampleR);
+        }
+        
+        // === Reverb Modulation === //
+        const float sampleRate = getSampleRate();
+        const float lfoIncrement = (2.0f * juce::MathConstants<float>::pi * lfoRateHz) / sampleRate;
+        
+        for(int i = 0; i < wetBuffer.getNumSamples(); ++i)
+        {
+            float lfoValue = std::sin(lfoPhase);
+            float modulatedDelayMs = 10.0f + lfoValue * lfoDepthMs;
+            float maxDelayMs = (tailModDelayL.getMaximumDelayInSamples() * 1000.0f) / sampleRate;
+            modulatedDelayMs = juce::jlimit(0.0f, maxDelayMs, modulatedDelayMs);
+            
+            tailModDelayL.setDelay(modulatedDelayMs);
+            tailModDelayR.setDelay(modulatedDelayMs);
+            
+            float sampleL = wetBuffer.getSample(0, i);
+            float sampleR = wetBuffer.getNumSamples() > 1 ? wetBuffer.getSample(1, i) : sampleL;
+            
+            tailModDelayL.pushSample(0, sampleL);
+            tailModDelayR.pushSample(0, sampleR);
+            
+            float modSampleL = tailModDelayL.popSample(0);
+            float modSampleR = tailModDelayR.popSample(0);
+            
+            wetBuffer.setSample(0, i, modSampleL);
+            if(wetBuffer.getNumChannels() > 1)
+                wetBuffer.setSample(1, i, modSampleR);
+            
+            lfoPhase += lfoIncrement;
+            if(lfoPhase >= 2.0f * juce::MathConstants<float>::pi)
+                lfoPhase -= 2.0f * juce::MathConstants<float>::pi;
+        }
+        
+        // Measure tails
+        float tailEnvL = 0.0f;
+        float tailEnvR = 0.0f;
+        const float tailRelease = 0.9995;
+        
+        for(int i = 0; i < wetBuffer.getNumSamples(); ++i)
+        {
+            float tailSampleL = std::abs(wetBuffer.getSample(0, i));
+            float tailSampleR = wetBuffer.getNumChannels() > 1
+                ? std::abs(wetBuffer.getSample(1, i))
+                : tailSampleL;
+            
+            tailEnvL = std::max(tailSampleL, tailEnvL * tailRelease);
+            tailEnvR = std::max(tailSampleR, tailEnvR * tailRelease);
+        }
+        
+        tailLevelL.store(tailEnvL);
+        tailLevelR.store(tailEnvR);
+
+        // === Final Wet/Dry Mix === //
+        float verbAmount = apvts.getRawParameterValue("VERB")->load();
+        for (int channel = 0; channel < buffer.getNumChannels(); ++channel)
+        {
+            auto* wet = wetBuffer.getReadPointer(channel);
+            auto* dry = processedDryBuffer.getReadPointer(channel);
+            auto* out = buffer.getWritePointer(channel);
+
+            for (int i = 0; i < buffer.getNumSamples(); ++i)
+            {
+                out[i] = dry[i] * (1.0f - verbAmount) + wet[i] * verbAmount;
+            }
+        }
+        
+        // === Dark / Light Tilt EQ === //
+        juce::dsp::AudioBlock<float> finalBlock(buffer);
+        auto finalBlockL = finalBlock.getSingleChannelBlock(0);
+        auto finalBlockR = finalBlock.getSingleChannelBlock(1);
+        juce::dsp::ProcessContextReplacing<float> finalContextL(finalBlockL);
+        juce::dsp::ProcessContextReplacing<float> finalContextR(finalBlockR);
+        
+        updateTiltEQ();
+        
+        tiltLowShelfL.process(finalContextL);
+        tiltLowShelfR.process(finalContextR);
+        tiltHighShelfL.process(finalContextL);
+        tiltHighShelfR.process(finalContextR);
+
+        // === Output Volume Control === //
+        auto volDb = apvts.getRawParameterValue("VOL")->load();
+        targetGain = juce::Decibels::decibelsToGain(volDb);
+
+        for (int channel = 0; channel < buffer.getNumChannels(); ++channel)
+        {
+            auto* channelData = buffer.getWritePointer(channel);
+            for (int i = 0; i < buffer.getNumSamples(); ++i)
+            {
+                channelData[i] *= targetGain;
             }
         }
     }
-
-    juce::AudioBuffer<float> wetBuffer;
-    wetBuffer.makeCopyOf(processedDryBuffer);
     
-    // === Reverb Predelay === //
-    for(int i = 0; i < wetBuffer.getNumSamples(); ++i)
-    {
-        float sampleL = wetBuffer.getSample(0, i);
-        float sampleR = wetBuffer.getNumChannels() > 1 ? wetBuffer.getSample(1, i) : sampleL;
-        
-        preDelayL.pushSample(0, sampleL);
-        preDelayR.pushSample(0, sampleR);
-        
-        float delayedL = preDelayL.popSample(0);
-        float delayedR = preDelayR.popSample(0);
-        
-        wetBuffer.setSample(0, i, delayedL);
-        if (wetBuffer.getNumChannels() > 1)
-            wetBuffer.setSample(1, i, delayedR);
-    }
+    measureLevels(bypassBuffer, buffer);
+}
 
-    // === Reverb and Filtering === //
-    reverbParams.roomSize = 0.95f;
-    reverbParams.damping = 0.1f;
-    reverbParams.wetLevel = 1.0f;
-    reverbParams.dryLevel = 0.0f;
-    reverbParams.width = 0.8f;
-    reverbParams.freezeMode = 0.0f;
+void ReverberationMachineAudioProcessor::measureLevels(const juce::AudioBuffer<float>& inputBuffer,
+                                                       const juce::AudioBuffer<float>& outputBuffer)
+{
+    const int numSamples = inputBuffer.getNumSamples();
+    const int numChannels = inputBuffer.getNumChannels();
     
-    reverbL.setParameters(reverbParams);
-    reverbR.setParameters(reverbParams);
-
-    juce::dsp::AudioBlock<float> block(wetBuffer);
-    auto blockL = block.getSingleChannelBlock(0);
-    auto blockR = block.getSingleChannelBlock(1);
-    juce::dsp::ProcessContextReplacing<float> contextL(blockL);
-    juce::dsp::ProcessContextReplacing<float> contextR(blockR);
+    float inL = inputBuffer.getRMSLevel(0, 0, numSamples);
+    float inR = numChannels > 1 ? inputBuffer.getRMSLevel(1, 0, numSamples) : inL;
     
-    reverbL.processMono(wetBuffer.getWritePointer(0), wetBuffer.getNumSamples());
-    reverbHighCutL.process(contextL);
-
-    if (wetBuffer.getNumChannels() > 1)
-        {
-            reverbR.processMono(wetBuffer.getWritePointer(1), wetBuffer.getNumSamples());
-            reverbHighCutR.process(contextR);
-        }
-
-    auto mapTailCutoff = [](float level)
-    {
-        float db = juce::Decibels::gainToDecibels(level + 1e-5f);
-        db = juce::jlimit(-60.0f, 0.0f, db);
-        
-        float norm = juce::jmap(db, -60.0f, 0.0f, 1.0f, 0.0f);
-        float shapedNorm = std::pow(norm, 2.5f);
-        
-        return juce::jmap(shapedNorm, 40.0f, 6000.0f);
-    };
-
-    float tailsReleaseRate = 0.9995f;
+    inputLevelL.store(inL);
+    inputLevelR.store(inR);
     
-    for(int i = 0; i < wetBuffer.getNumSamples(); ++i)
-    {
-        float sampleL = std::abs(wetBuffer.getSample(0, i));
-        float sampleR = wetBuffer.getNumChannels() > 1 ? std::abs(wetBuffer.getSample(1, i)) : sampleL;
-        
-        tailEnvelopeL = std::max(sampleL, tailEnvelopeL * tailsReleaseRate);
-        tailEnvelopeR = std::max(sampleR, tailEnvelopeR * tailsReleaseRate);
-    }
+    float outL = outputBuffer.getRMSLevel(0, 0, numSamples);
+    float outR = numChannels > 1 ? outputBuffer.getRMSLevel(1, 0, numSamples) : outL;
     
-    tailCutoffL.setTargetValue(mapTailCutoff(tailEnvelopeL));
-    tailCutoffR.setTargetValue(mapTailCutoff(tailEnvelopeR));
-    
-    for(int i = 0; i < wetBuffer.getNumSamples(); ++i)
-    {
-        float cutoffL = tailCutoffL.getNextValue();
-        float cutoffR = tailCutoffR.getNextValue();
-        
-        tailFilterL.setCutoffFrequency(cutoffL);
-        tailFilterR.setCutoffFrequency(cutoffR);
-        
-        float wetSampleL = wetBuffer.getSample(0, i);
-        float wetSampleR = wetBuffer.getNumChannels() > 1 ? wetBuffer.getSample(1, i) : wetSampleL;
-        
-        wetSampleL = tailFilterL.processSample(0, wetSampleL);
-        if(wetBuffer.getNumChannels() > 1)
-        {
-            wetSampleR = tailFilterR.processSample(0, wetSampleR);
-        }
-        
-        wetBuffer.setSample(0, i, wetSampleL);
-        if (wetBuffer.getNumChannels() > 1)
-            wetBuffer.setSample(1, i, wetSampleR);
-    }
-    
-    // === Reverb Modulation === //
-    const float sampleRate = getSampleRate();
-    const float lfoIncrement = (2.0f * juce::MathConstants<float>::pi * lfoRateHz) / sampleRate;
-    
-    for(int i = 0; i < wetBuffer.getNumSamples(); ++i)
-    {
-        float lfoValue = std::sin(lfoPhase);
-        float modulatedDelayMs = 10.0f + lfoValue * lfoDepthMs;
-        float maxDelayMs = (tailModDelayL.getMaximumDelayInSamples() * 1000.0f) / sampleRate;
-        modulatedDelayMs = juce::jlimit(0.0f, maxDelayMs, modulatedDelayMs);
-        
-        tailModDelayL.setDelay(modulatedDelayMs);
-        tailModDelayR.setDelay(modulatedDelayMs);
-        
-        float sampleL = wetBuffer.getSample(0, i);
-        float sampleR = wetBuffer.getNumSamples() > 1 ? wetBuffer.getSample(1, i) : sampleL;
-        
-        tailModDelayL.pushSample(0, sampleL);
-        tailModDelayR.pushSample(0, sampleR);
-        
-        float modSampleL = tailModDelayL.popSample(0);
-        float modSampleR = tailModDelayR.popSample(0);
-        
-        wetBuffer.setSample(0, i, modSampleL);
-        if(wetBuffer.getNumChannels() > 1)
-            wetBuffer.setSample(1, i, modSampleR);
-        
-        lfoPhase += lfoIncrement;
-        if(lfoPhase >= 2.0f * juce::MathConstants<float>::pi)
-            lfoPhase -= 2.0f * juce::MathConstants<float>::pi;
-    }
-
-    // === Final Wet/Dry Mix === //
-    float verbAmount = apvts.getRawParameterValue("VERB")->load();
-    for (int channel = 0; channel < buffer.getNumChannels(); ++channel)
-    {
-        auto* wet = wetBuffer.getReadPointer(channel);
-        auto* dry = processedDryBuffer.getReadPointer(channel);
-        auto* out = buffer.getWritePointer(channel);
-
-        for (int i = 0; i < buffer.getNumSamples(); ++i)
-        {
-            out[i] = dry[i] * (1.0f - verbAmount) + wet[i] * verbAmount;
-        }
-    }
-    
-    // === Dark / Light Tilt EQ === //
-    juce::dsp::AudioBlock<float> finalBlock(buffer);
-    auto finalBlockL = finalBlock.getSingleChannelBlock(0);
-    auto finalBlockR = finalBlock.getSingleChannelBlock(1);
-    juce::dsp::ProcessContextReplacing<float> finalContextL(finalBlockL);
-    juce::dsp::ProcessContextReplacing<float> finalContextR(finalBlockR);
-    
-    updateTiltEQ();
-    
-    tiltLowShelfL.process(finalContextL);
-    tiltLowShelfR.process(finalContextR);
-    tiltHighShelfL.process(finalContextL);
-    tiltHighShelfR.process(finalContextR);
-
-    // === Output Volume Control === //
-    auto volDb = apvts.getRawParameterValue("VOL")->load();
-    targetGain = juce::Decibels::decibelsToGain(volDb);
-
-    for (int channel = 0; channel < buffer.getNumChannels(); ++channel)
-    {
-        auto* channelData = buffer.getWritePointer(channel);
-        for (int i = 0; i < buffer.getNumSamples(); ++i)
-        {
-            channelData[i] *= targetGain;
-        }
-    }
-
-    // === Output Level Metering === //
-    float outL = buffer.getRMSLevel(0, 0, buffer.getNumSamples());
-    float outR = buffer.getNumChannels() > 1 ? buffer.getRMSLevel(1, 0, buffer.getNumSamples()) : outL;
     outputLevelL.store(outL);
     outputLevelR.store(outR);
 }

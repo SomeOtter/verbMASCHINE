@@ -22,10 +22,9 @@ public:
     
     float targetGain = 1.0f;
     
-    std::atomic<float> inputLevelL {0.0f};
-    std::atomic<float> inputLevelR {0.0f};
-    std::atomic<float> outputLevelL {0.0f};
-    std::atomic<float> outputLevelR {0.0f};
+    std::atomic<float> inputLevelL {0.0f}, inputLevelR {0.0f};
+    std::atomic<float> outputLevelL {0.0f}, outputLevelR {0.0f};
+    std::atomic<float> tailLevelL {0.0f}, tailLevelR {0.0f};
     
     juce::Reverb::Parameters reverbParams;
     juce::Reverb reverbL, reverbR;
@@ -34,8 +33,7 @@ public:
     juce::dsp::StateVariableTPTFilter<float> tailFilterL, tailFilterR;
     juce::SmoothedValue<float> tailCutoffL, tailCutoffR;
     
-    float tailEnvelopeL = 0.0f;
-    float tailEnvelopeR = 0.0f;
+    float tailEnvelopeL = 0.0f, tailEnvelopeR = 0.0f;
     
     juce::dsp::DelayLine<float, juce::dsp::DelayLineInterpolationTypes::Linear> tailModDelayL, tailModDelayR;
     float lfoPhase = 0.0f;
@@ -88,6 +86,8 @@ public:
 
 private:
     void updateTiltEQ();
+    void measureLevels(const juce::AudioBuffer<float>& inputBuffer,
+                       const juce::AudioBuffer<float>& outputBuffer);
     
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ReverberationMachineAudioProcessor)

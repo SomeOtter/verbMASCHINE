@@ -11,6 +11,7 @@
 #include <JuceHeader.h>
 #include "PluginProcessor.h"
 #include <juce_audio_processors/juce_audio_processors.h>
+#include <juce_audio_basics/juce_audio_basics.h>
 
 class CustomKnobLookAndFeel : public juce::LookAndFeel_V4
 {
@@ -132,61 +133,180 @@ class StereoMeterComponent : public juce::Component, private juce::Timer
 public:
     StereoMeterComponent()
     {
+        addAndMakeVisible(leftLevelLabel);
+        addAndMakeVisible(rightLevelLabel);
+        
+        auto setupLabel = [](juce::Label& label)
+        {
+            juce::FontOptions dbFont("Helvetica Neue", 10.0f, juce::Font::bold);
+            label.setJustificationType(juce::Justification::centredLeft);
+            label.setColour(juce::Label::textColourId, juce::Colour::fromRGB(200, 200, 190));
+            label.setFont(dbFont);
+            label.setInterceptsMouseClicks(false, false);
+        };
+        
+        setupLabel(leftLevelLabel);
+        setupLabel(rightLevelLabel);
+        
         startTimerHz(30);
     }
     
-    void setLevel(float level)
+    void setRawLevels(float left, float right)
     {
-        levelValue = juce::jlimit(0.0f, 1.0f, level);
+        leftRawLevel = juce::jlimit(0.0f, 1.0f, left);
+        rightRawLevel = juce::jlimit(0.0f, 1.0f, right);
         
-        const float clipThreshold = 0.99f;
-        if(levelValue >= clipThreshold)
-        {
-            clipIndicatorOpacity = 1.0f;
-        }
+        if(leftRawLevel >= 0.99f) clipOpacityLeft = 1.0f;
+        if(rightRawLevel >= 0.99f) clipOpacityRight = 1.0f;
         
         repaint();
     }
     
+    void setChannelHeight(float h) {channelHeight = h;}
+    void setChannelSpacing(float s) {channelSpacing = s;}
+    
     void resized() override
     {
-        meterBounds = getLocalBounds().toFloat();
+        auto r = getLocalBounds().toFloat();
+        
+        const float h = (channelHeight >= 0)
+            ? channelHeight
+            : (r.getHeight() - channelSpacing) * 0.5f;
+        
+        const float totalUsed = h * 2.0f + channelSpacing;
+        const float startY = (r.getHeight() - totalUsed) * 0.5f;
+        
+        auto fullLeft = juce::Rectangle<float>(r.getX(), r.getY() + startY, r.getWidth(), h);
+        auto fullRight = juce::Rectangle<float>(r.getX(),
+                                                       r.getY() + startY + h + channelSpacing,
+                                                       r.getWidth(), h);
+        
+        const float textWidth = 40.0f;
+        
+        leftTextArea = fullLeft.removeFromLeft(textWidth);
+        rightTextArea = fullRight.removeFromLeft(textWidth);
+        
+        leftMeterBounds = fullLeft.withX(fullLeft.getX()).withWidth(fullLeft.getWidth());
+        rightMeterBounds = fullRight.withX(fullRight.getX()).withWidth(fullRight.getWidth());
+        
+        leftLevelLabel.setBounds(leftTextArea.toNearestInt());
+        rightLevelLabel.setBounds(rightTextArea.toNearestInt());
+    }
+    
+private:
+    float leftRawLevel = 0.0f, rightRawLevel = 0.0f;
+    float leftSmoothedLevel = 0.0f, rightSmoothedLevel = 0.0f;
+    float leftTextLevel = 0.0f, rightTextLevel = 0.0f;
+    const float smoothFactor = 0.2f;
+    const float textSmoothFactor = 0.02;
+    
+    float clipOpacityLeft = 0.0f, clipOpacityRight = 0.0f;
+    const float clipFade = 0.02f;
+    
+    float channelHeight = 7.0f;
+    float channelSpacing = 7.0f;
+
+    juce::Rectangle<float> leftMeterBounds, rightMeterBounds;
+    juce::Rectangle<float> leftTextArea, rightTextArea;
+    
+    juce::Label leftLevelLabel, rightLevelLabel;
+    
+    void timerCallback() override
+    {
+        leftSmoothedLevel = smoothFactor * leftRawLevel + (1.0f - smoothFactor) * leftSmoothedLevel;
+        rightSmoothedLevel = smoothFactor * rightRawLevel + (1.0f - smoothFactor) * rightSmoothedLevel;
+        leftTextLevel = textSmoothFactor * leftRawLevel + (1.0f - textSmoothFactor) * leftTextLevel;
+        rightTextLevel = textSmoothFactor * rightRawLevel + (1.0f - textSmoothFactor) * rightTextLevel;
+        
+        if(clipOpacityLeft > 0.0f)
+            clipOpacityLeft = juce::jmax(0.0f, clipOpacityLeft - clipFade);
+        if(clipOpacityRight > 0.0f)
+            clipOpacityRight = juce::jmax(0.0f, clipOpacityRight - clipFade);
+        
+        auto toDbString = [](float level)
+        {
+            if (level <= 0.0001f)
+                return juce::String::fromUTF8 (u8"-\u221E"); // '-∞'
+            else
+                return juce::String(juce::Decibels::gainToDecibels(level, -80.0f), 1);
+        };
+        
+        leftLevelLabel.setText(toDbString(leftTextLevel), juce::dontSendNotification);
+        rightLevelLabel.setText(toDbString(rightTextLevel), juce::dontSendNotification);
+        
+        repaint();
     }
     
     void paint(juce::Graphics& g) override
     {
-        auto bounds = getLocalBounds().toFloat();
-
+        drawOneMeter(g, leftMeterBounds, leftSmoothedLevel, clipOpacityLeft);
+        drawOneMeter(g, rightMeterBounds, rightSmoothedLevel, clipOpacityRight);
+    }
+    
+    void drawOneMeter(juce::Graphics& g,
+                      juce::Rectangle<float> area,
+                      float level,
+                      float& clipOpacity)
+    {
         g.setColour(juce::Colour::fromRGB(200, 200, 190));
-        g.fillRect(bounds);
-
-        float fillWidth = bounds.getWidth() * levelValue;
-        g.setColour(juce::Colour::fromRGB(0, 205, 0));
-        g.fillRect(bounds.withWidth(fillWidth));
+        g.fillRect(area);
         
-        if(clipIndicatorOpacity > 0.0f)
+        const float fillWidth = area.getWidth() * level;
+        g.setColour(juce::Colour::fromRGB(0, 205, 0).withAlpha(1.0f));
+        g.fillRect(area.withWidth(fillWidth));
+        
+        if(clipOpacity > 0.0f)
         {
-            float clipWidth = levelValue * 20.f;
-            g.setColour(juce::Colours::red);
-            g.fillRect(bounds.withX(bounds.getRight() - clipWidth).withWidth(clipWidth));
+            const float clipWidth = juce::jlimit(0.0f, area.getWidth(), level * 20.0f);
+            g.setColour(juce::Colour::fromRGB(230, 0, 0));
+            g.fillRect(area.withX(area.getRight() - clipWidth).withWidth(clipWidth));
         }
+    }
+};
+
+class TailMeterComponent : public juce::Component, private juce::Timer
+{
+public:
+    TailMeterComponent()
+    {
+        startTimerHz(30);
+    }
+    
+    void setRawTailLevels(float left, float right)
+    {
+        rawL = left;
+        rawR = right;
+    }
+    
+    void reset() {
+        smoothedL = smoothedR = 0.0f;
+    }
+    
+    void paint(juce::Graphics& g) override
+    {
+        auto area = getLocalBounds().toFloat().reduced(4.0f);
+        
+        g.setColour(juce::Colour::fromRGB(200, 200, 190));
+        g.fillRect(area);
+        
+        auto top = area.removeFromTop(area.getHeight() * 0.5f);
+        
+        g.setColour(juce::Colour::fromRGB(0, 200, 200));
+        g.fillRect(top.withWidth(area.getWidth() * smoothedL));
+        
+        g.setColour(juce::Colours::purple.withAlpha(0.6f));
+        g.fillRect(area.withWidth(area.getWidth() * smoothedR));
     }
     
 private:
-    float levelValue = 0.0f;
-    juce::Rectangle<float> meterBounds;
-    
-    float clipIndicatorOpacity = 0.0f;
-    const float clipFadeOutSpeed = 0.02f;
+    float rawL = 0.0f, rawR = 0.0f;
+    float smoothedL = 0.0f, smoothedR = 0.0f;
+    const float smoothAlpha = 0.2f;
     
     void timerCallback() override
     {
-        if(clipIndicatorOpacity > 0.0f)
-        {
-            clipIndicatorOpacity -= clipFadeOutSpeed;
-            if(clipIndicatorOpacity < 0.0f)
-                clipIndicatorOpacity = 0.0f;
-        }
+        smoothedL = smoothAlpha * rawL + (1.0f - smoothAlpha) * smoothedL;
+        smoothedR = smoothAlpha * rawR + (1.0f - smoothAlpha) * smoothedR;
         repaint();
     }
 };
@@ -220,10 +340,12 @@ private:
     std::unique_ptr<VisualiserComponent> visualiser;
     
     juce::Rectangle<int> row1Fill;
+    juce::Rectangle<int> inputFill, outputFill;
     juce::Label inputLabel, outputLabel;
+    juce::Label tailsLabel;
     
-    StereoMeterComponent inputMeterL, inputMeterR;
-    StereoMeterComponent outputMeterL, outputMeterR;
+    StereoMeterComponent stereoInputMeter, stereoOutputMeter;
+    TailMeterComponent tailMeter;
     
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> volAttachment;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> gainAttachment;
@@ -239,39 +361,3 @@ private:
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ReverberationMachineAudioProcessorEditor)
 };
-
-//class CustomToggleLookAndFeel : public juce::LookAndFeel_V4
-//{
-//public:
-//    void drawToggleButton(juce::Graphics& g, juce::ToggleButton& button,
-//                          bool isMouseOverButton,
-//                          bool isButtonDown) override
-//    {
-//        using namespace juce;
-//
-//        auto bounds = button.getLocalBounds().toFloat();
-//
-//        auto trackWidth = bounds.getWidth() * 0.4f;
-//        auto trackHeight = bounds.getHeight() * 0.4f;
-//        auto trackX = bounds.getCentreX() - trackWidth * 0.5f;
-//        auto trackY = bounds.getCentreY() - trackHeight * 0.5f;
-//
-//        auto trackBounds = Rectangle<float>(trackX, trackY, trackWidth, trackHeight);
-//
-//        auto trackColour = Colour::fromRGB(200, 200, 190);
-//        auto thumbColour = Colour::fromRGB(250, 255, 220);
-//
-//        g.setColour(trackColour);
-//        g.fillRoundedRectangle(trackBounds, trackHeight * 0.15f);
-//
-//        float thumbSize = trackHeight;
-//        float thumbRadius = thumbSize * 0.15f;
-//
-//        float thumbX = button.getToggleState() ? trackBounds.getRight() - thumbSize : trackBounds.getX();
-//
-//        auto thumbBounds = Rectangle<float>(thumbX, trackY, thumbSize, thumbSize);
-//
-//        g.setColour(thumbColour);
-//        g.fillRoundedRectangle(thumbBounds, thumbRadius);
-//    }
-//};
