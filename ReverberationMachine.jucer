@@ -17,6 +17,14 @@
             file="Source/PluginEditor.cpp"/>
       <FILE id="wXkpLa" name="PluginEditor.h" compile="0" resource="0" file="Source/PluginEditor.h"/>
     </GROUP>
+    <GROUP id="{05F0185E-3078-0BEC-EC4B-BA01F833012C}" name="Assets">
+      <FILE id="eadGDC" name="KarasumaGothic-Black.otf" compile="0" resource="1"
+            file="Assets/KarasumaGothic-Black.otf"/>
+      <FILE id="rCCGVV" name="KarasumaGothic-Bold.otf" compile="0" resource="1"
+            file="Assets/KarasumaGothic-Bold.otf"/>
+      <FILE id="r0n4HO" name="KarasumaGothic-BoldItalic.otf" compile="0"
+            resource="1" file="Assets/KarasumaGothic-BoldItalic.otf"/>
+    </GROUP>
   </MAINGROUP>
   <MODULES>
     <MODULE id="juce_audio_basics" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>

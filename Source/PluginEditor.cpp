@@ -22,13 +22,14 @@ verbMASCHINEAudioProcessorEditor::verbMASCHINEAudioProcessorEditor (verbMASCHINE
                                                        [this] { return verbKnob.getValue(); });
     addAndMakeVisible(*visualiser);
     
-    setSize(650, 700);
+    startTimerHz(30);
     
-    juce::FontOptions titleFont("Helvetica Neue", 85.0f, juce::Font::bold);
+    setSize(650, 700);
+
     addAndMakeVisible(titleLabel);
+    titleLabel.setFont(CustomFonts::karasumaGothicBlack.withHeight(90.0f));
     titleLabel.setText("verbMASCHINE", juce::dontSendNotification);
     titleLabel.setJustificationType(juce::Justification::centred);
-    titleLabel.setFont(titleFont);
     titleLabel.setColour(juce::Label::textColourId, CustomColours::aqua);
     titleLabel.setInterceptsMouseClicks(true, false);
     titleLabel.setMouseCursor(juce::MouseCursor::PointingHandCursor);
@@ -46,37 +47,33 @@ verbMASCHINEAudioProcessorEditor::verbMASCHINEAudioProcessorEditor (verbMASCHINE
     addAndMakeVisible(gainLabel);
     addAndMakeVisible(verbLabel);
     
-    juce::FontOptions labelFont("Helvetica Neue", 15.0f, juce::Font::bold);
     addAndMakeVisible(darkLightLabel);
-    darkLightLabel.setFont(labelFont);
+    darkLightLabel.setFont(CustomFonts::karasumaGothicBold.withHeight(15.0f));
     darkLightLabel.setText("DARK / LIGHT", juce::dontSendNotification);
     darkLightLabel.setJustificationType(juce::Justification::centredTop);
     darkLightLabel.setColour(juce::Label::textColourId, CustomColours::lightGrey);
     
-    juce::FontOptions meterFont("Helvetica Neue", 28.0f, juce::Font::bold);
     addAndMakeVisible(inputLabel);
-    inputLabel.setFont(meterFont);
+    inputLabel.setFont(CustomFonts::karasumaGothicBlack.withHeight(28.0f));
     inputLabel.setText("INPUT", juce::dontSendNotification);
     inputLabel.setJustificationType(juce::Justification::centredLeft);
     inputLabel.setColour(juce::Label::textColourId, CustomColours::lightGrey);
     
     addAndMakeVisible(outputLabel);
-    outputLabel.setFont(meterFont);
+    outputLabel.setFont(CustomFonts::karasumaGothicBlack.withHeight(28.0f));
     outputLabel.setText("OUTPUT", juce::dontSendNotification);
     outputLabel.setJustificationType(juce::Justification::centredLeft);
     outputLabel.setColour(juce::Label::textColourId, CustomColours::lightGrey);
     
-    startTimerHz(30);
     addAndMakeVisible(stereoInputMeter);
     addAndMakeVisible(stereoOutputMeter);
     stereoInputMeter.setChannelSpacing(6.0f);
     stereoOutputMeter.setChannelSpacing(6.0f);
     stereoInputMeter.setChannelHeight(4.0f);
     
-    juce::FontOptions tailsFont("Helvetica Neue", 24.0f, juce::Font::bold);
     addAndMakeVisible(tailMeter);
     addAndMakeVisible(tailsLabel);
-    tailsLabel.setFont(tailsFont);
+    tailsLabel.setFont(CustomFonts::karasumaGothicBoldItalic.withHeight(26.0f));
     tailsLabel.setText("TAILS", juce::dontSendNotification);
     tailsLabel.setJustificationType(juce::Justification::topLeft);
     tailsLabel.setColour(juce::Label::textColourId, CustomColours::lightGrey);
@@ -232,8 +229,7 @@ void verbMASCHINEAudioProcessorEditor::layoutKnobWithLabel(juce::Slider& knob,
 
     area.removeFromTop(labelYOffset);
 
-    juce::FontOptions labelFont("Helvetica Neue", 24.0f, juce::Font::bold);
-    label.setFont(labelFont);
+    label.setFont(CustomFonts::karasumaGothicBold.withHeight(24.0f));
     label.setText(text, juce::dontSendNotification);
     label.setJustificationType(juce::Justification::centredTop);
     label.setColour(juce::Label::textColourId, CustomColours::lightGrey);

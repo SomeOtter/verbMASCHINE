@@ -30,7 +30,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout verbMASCHINEAudioProcessor::
         "VERB", juce::NormalisableRange<float>(0.0f, 1.0f, 0.0001f, 0.5f), 0.25f));
     
     layout.push_back(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID("DARK_LIGHT", 1),
-        "DARK_LIGHT", juce::NormalisableRange<float>(-1.0f, 1.0f, 0.0001f), 0.0f));
+        "DARK / LIGHT", juce::NormalisableRange<float>(-1.0f, 1.0f, 0.0001f), 0.0f));
     
     layout.push_back(std::make_unique<juce::AudioParameterBool>(juce::ParameterID("BYPASS", 1), "BYPASS", false));
     

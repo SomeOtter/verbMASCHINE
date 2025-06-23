@@ -13,6 +13,7 @@
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <juce_audio_basics/juce_audio_basics.h>
 #include "CustomKnob.h"
+#include "BinaryData.h"
 
 namespace CustomColours
 {
@@ -26,6 +27,16 @@ namespace CustomColours
     static const juce::Colour darkGreen = juce::Colour::fromRGB(0, 150, 0);
     static const juce::Colour green = juce::Colour::fromRGB(0, 250, 0);
     static const juce::Colour red = juce::Colour::fromRGB(230, 0, 0);
+}
+
+namespace CustomFonts
+{
+    static const juce::FontOptions karasumaGothicBlack {juce::Typeface::createSystemTypefaceFor(BinaryData::KarasumaGothicBlack_otf,
+                                                                                   BinaryData::KarasumaGothicBlack_otfSize)};
+    static const juce::FontOptions karasumaGothicBold {juce::Typeface::createSystemTypefaceFor(BinaryData::KarasumaGothicBold_otf,
+                                                                                  BinaryData::KarasumaGothicBold_otfSize)};
+    static const juce::FontOptions karasumaGothicBoldItalic {juce::Typeface::createSystemTypefaceFor(BinaryData::KarasumaGothicBoldItalic_otf,
+                                                                                  BinaryData::KarasumaGothicBoldItalic_otfSize)};
 }
 
 class CustomKnobLookAndFeel : public juce::LookAndFeel_V4
@@ -103,9 +114,8 @@ public:
                 auto posL = center.getPointOnCircumference(labelR, rotaryStart + 0.2f);
                 auto posR = center.getPointOnCircumference(labelR, rotaryEnd - 0.2f);
                 
-                juce::FontOptions labelFont("Helvetica Neue", (radius * 0.18f) * 1.5f, juce::Font::bold);
                 g.setColour(CustomColours::lightGrey);
-                g.setFont(juce::Font(labelFont));
+                g.setFont(juce::Font(CustomFonts::karasumaGothicBold.withHeight((radius * 0.18f) * 1.5f)));
                 
                 g.drawFittedText(leftLabel, juce::Rectangle<int>((int)posL.x -20,
                                             (int)posL.y -10, 40, 20),
@@ -198,10 +208,9 @@ public:
         
         auto setupLabel = [](juce::Label& label)
         {
-            juce::FontOptions dbFont("Helvetica Neue", 10.0f, juce::Font::bold);
             label.setJustificationType(juce::Justification::centredLeft);
             label.setColour(juce::Label::textColourId, CustomColours::lightGrey);
-            label.setFont(dbFont);
+            label.setFont(CustomFonts::karasumaGothicBold.withHeight(10.0f));
             label.setInterceptsMouseClicks(false, false);
         };
         
