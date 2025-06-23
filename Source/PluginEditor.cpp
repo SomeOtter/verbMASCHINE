@@ -10,7 +10,7 @@
 #include "PluginEditor.h"
 
 //==============================================================================
-ReverberationMachineAudioProcessorEditor::ReverberationMachineAudioProcessorEditor (ReverberationMachineAudioProcessor& p)
+verbMASCHINEAudioProcessorEditor::verbMASCHINEAudioProcessorEditor (verbMASCHINEAudioProcessor& p)
     : AudioProcessorEditor (&p), audioProcessor (p)
 {
     using SliderAttachment = juce::AudioProcessorValueTreeState::SliderAttachment;
@@ -22,7 +22,7 @@ ReverberationMachineAudioProcessorEditor::ReverberationMachineAudioProcessorEdit
                                                        [this] { return verbKnob.getValue(); });
     addAndMakeVisible(*visualiser);
     
-    setSize (620, 600);
+    setSize(650, 700);
     
     juce::FontOptions titleFont("Helvetica Neue", 85.0f, juce::Font::bold);
     addAndMakeVisible(titleLabel);
@@ -87,7 +87,7 @@ ReverberationMachineAudioProcessorEditor::ReverberationMachineAudioProcessorEdit
     darkLightAttachment = std::make_unique<SliderAttachment>(audioProcessor.apvts, "DARK_LIGHT",                                                                                    darkLightKnob);
 }
 
-ReverberationMachineAudioProcessorEditor::~ReverberationMachineAudioProcessorEditor()
+verbMASCHINEAudioProcessorEditor::~verbMASCHINEAudioProcessorEditor()
 {
     volKnob.setLookAndFeel(nullptr);
     gainKnob.setLookAndFeel(nullptr);
@@ -96,7 +96,7 @@ ReverberationMachineAudioProcessorEditor::~ReverberationMachineAudioProcessorEdi
 }
 
 //==============================================================================
-void ReverberationMachineAudioProcessorEditor::paint (juce::Graphics& g)
+void verbMASCHINEAudioProcessorEditor::paint (juce::Graphics& g)
 {
     // Background
     g.fillAll(CustomColours::offBlack);
@@ -114,7 +114,7 @@ void ReverberationMachineAudioProcessorEditor::paint (juce::Graphics& g)
     g.fillRoundedRectangle(outputFill.toFloat(), 10.0f);
 }
 
-void ReverberationMachineAudioProcessorEditor::resized()
+void verbMASCHINEAudioProcessorEditor::resized()
 {
     // Main split into 4 rows
     auto bounds = getLocalBounds().reduced(15);
@@ -170,10 +170,10 @@ void ReverberationMachineAudioProcessorEditor::resized()
     
     // Tails Meter
     auto tailBounds = row1.withSizeKeepingCentre(row1.getWidth() * 0.91f, row1.getHeight());
-    auto tailsLabelBounds = tailBounds.removeFromLeft(tailBounds.getWidth() * 0.12f);
+    auto tailsLabelBounds = tailBounds.removeFromLeft(tailBounds.getWidth() * 0.15f);
     auto tailMeterBounds = tailBounds.withSizeKeepingCentre(tailBounds.getWidth(),
                                                             tailBounds.getHeight() * 0.65f);
-    tailMeterBounds.setY(tailBounds.getY() + 3.5f);
+    tailMeterBounds.setY(tailBounds.getY() + 0.5f);
     
     tailsLabel.setBounds(tailsLabelBounds);
     tailMeter.setBounds(tailMeterBounds);
@@ -187,7 +187,7 @@ void ReverberationMachineAudioProcessorEditor::resized()
         auto darkLightArea = row2.reduced(10);
 
         int totalHeight = darkLightArea.getHeight();
-        int knobHeight = totalHeight * 0.5f;
+        int knobHeight = totalHeight * 0.58f;
 
         auto knobBounds = darkLightArea.removeFromTop(knobHeight);
         darkLightKnob.setBounds(knobBounds);
@@ -216,7 +216,7 @@ void ReverberationMachineAudioProcessorEditor::resized()
     titleLabel.setBounds(row4);
 }
 
-void ReverberationMachineAudioProcessorEditor::layoutKnobWithLabel(juce::Slider& knob,
+void verbMASCHINEAudioProcessorEditor::layoutKnobWithLabel(juce::Slider& knob,
                                                                    juce::Label& label,
                                                                    const juce::String& text,
                                                                    juce::Rectangle<int> area)
@@ -240,7 +240,7 @@ void ReverberationMachineAudioProcessorEditor::layoutKnobWithLabel(juce::Slider&
     label.setBounds(area.removeFromTop(labelHeight));
 }
 
-void ReverberationMachineAudioProcessorEditor::timerCallback()
+void verbMASCHINEAudioProcessorEditor::timerCallback()
 {
     // Meter Updates
     stereoInputMeter.setRawLevels(
@@ -270,11 +270,11 @@ void ReverberationMachineAudioProcessorEditor::timerCallback()
     titleLabel.setColour(juce::Label::textColourId, blended);
 }
 
-void ReverberationMachineAudioProcessorEditor::mouseUp(const juce::MouseEvent& event)
+void verbMASCHINEAudioProcessorEditor::mouseUp(const juce::MouseEvent& event)
 {
     if (event.eventComponent == &titleLabel)
     {
-        auto& processor = static_cast<ReverberationMachineAudioProcessor&>(audioProcessor);
+        auto& processor = static_cast<verbMASCHINEAudioProcessor&>(audioProcessor);
         auto* bypassParam = dynamic_cast<juce::AudioParameterBool*>(processor.apvts.getParameter("BYPASS"));
 
         if (bypassParam != nullptr)

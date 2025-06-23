@@ -13,7 +13,7 @@
 //==============================================================================
 /**
 */
-class ReverberationMachineAudioProcessor  : public juce::AudioProcessor
+class verbMASCHINEAudioProcessor  : public juce::AudioProcessor
 {
 public:
     static juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
@@ -48,8 +48,8 @@ public:
     
     
     //==============================================================================
-    ReverberationMachineAudioProcessor();
-    ~ReverberationMachineAudioProcessor() override;
+    verbMASCHINEAudioProcessor();
+    ~verbMASCHINEAudioProcessor() override;
 
     //==============================================================================
     void prepareToPlay (double sampleRate, int samplesPerBlock) override;
@@ -90,5 +90,5 @@ private:
                        const juce::AudioBuffer<float>& outputBuffer);
     
     //==============================================================================
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ReverberationMachineAudioProcessor)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (verbMASCHINEAudioProcessor)
 };

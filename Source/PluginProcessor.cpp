@@ -9,7 +9,7 @@
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
 
-juce::AudioProcessorValueTreeState::ParameterLayout ReverberationMachineAudioProcessor::createParameterLayout()
+juce::AudioProcessorValueTreeState::ParameterLayout verbMASCHINEAudioProcessor::createParameterLayout()
 {
     std::vector<std::unique_ptr<juce::RangedAudioParameter>> layout;
     
@@ -38,7 +38,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout ReverberationMachineAudioPro
 }
 
 //==============================================================================
-ReverberationMachineAudioProcessor::ReverberationMachineAudioProcessor()
+verbMASCHINEAudioProcessor::verbMASCHINEAudioProcessor()
     : AudioProcessor (BusesProperties()
                       .withInput ("Input", juce::AudioChannelSet::stereo(), true)
                       .withOutput ("Output", juce::AudioChannelSet::stereo(), true)),
@@ -46,17 +46,17 @@ ReverberationMachineAudioProcessor::ReverberationMachineAudioProcessor()
 {
 }
 
-ReverberationMachineAudioProcessor::~ReverberationMachineAudioProcessor()
+verbMASCHINEAudioProcessor::~verbMASCHINEAudioProcessor()
 {
 }
 
 //==============================================================================
-const juce::String ReverberationMachineAudioProcessor::getName() const
+const juce::String verbMASCHINEAudioProcessor::getName() const
 {
     return JucePlugin_Name;
 }
 
-bool ReverberationMachineAudioProcessor::acceptsMidi() const
+bool verbMASCHINEAudioProcessor::acceptsMidi() const
 {
    #if JucePlugin_WantsMidiInput
     return true;
@@ -65,7 +65,7 @@ bool ReverberationMachineAudioProcessor::acceptsMidi() const
    #endif
 }
 
-bool ReverberationMachineAudioProcessor::producesMidi() const
+bool verbMASCHINEAudioProcessor::producesMidi() const
 {
    #if JucePlugin_ProducesMidiOutput
     return true;
@@ -74,7 +74,7 @@ bool ReverberationMachineAudioProcessor::producesMidi() const
    #endif
 }
 
-bool ReverberationMachineAudioProcessor::isMidiEffect() const
+bool verbMASCHINEAudioProcessor::isMidiEffect() const
 {
    #if JucePlugin_IsMidiEffect
     return true;
@@ -83,37 +83,37 @@ bool ReverberationMachineAudioProcessor::isMidiEffect() const
    #endif
 }
 
-double ReverberationMachineAudioProcessor::getTailLengthSeconds() const
+double verbMASCHINEAudioProcessor::getTailLengthSeconds() const
 {
     return 0.0;
 }
 
-int ReverberationMachineAudioProcessor::getNumPrograms()
+int verbMASCHINEAudioProcessor::getNumPrograms()
 {
     return 1;   // NB: some hosts don't cope very well if you tell them there are 0 programs,
                 // so this should be at least 1, even if you're not really implementing programs.
 }
 
-int ReverberationMachineAudioProcessor::getCurrentProgram()
+int verbMASCHINEAudioProcessor::getCurrentProgram()
 {
     return 0;
 }
 
-void ReverberationMachineAudioProcessor::setCurrentProgram (int index)
+void verbMASCHINEAudioProcessor::setCurrentProgram (int index)
 {
 }
 
-const juce::String ReverberationMachineAudioProcessor::getProgramName (int index)
+const juce::String verbMASCHINEAudioProcessor::getProgramName (int index)
 {
     return {};
 }
 
-void ReverberationMachineAudioProcessor::changeProgramName (int index, const juce::String& newName)
+void verbMASCHINEAudioProcessor::changeProgramName (int index, const juce::String& newName)
 {
 }
 
 //==============================================================================
-void ReverberationMachineAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
+void verbMASCHINEAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
     juce::dsp::ProcessSpec spec;
     spec.sampleRate = sampleRate;
@@ -173,14 +173,14 @@ void ReverberationMachineAudioProcessor::prepareToPlay (double sampleRate, int s
 }
 
 
-void ReverberationMachineAudioProcessor::releaseResources()
+void verbMASCHINEAudioProcessor::releaseResources()
 {
     // When playback stops, you can use this as an opportunity to free up any
     // spare memory, etc.
 }
 
 #ifndef JucePlugin_PreferredChannelConfigurations
-bool ReverberationMachineAudioProcessor::isBusesLayoutSupported (const BusesLayout& layouts) const
+bool verbMASCHINEAudioProcessor::isBusesLayoutSupported (const BusesLayout& layouts) const
 {
   #if JucePlugin_IsMidiEffect
     juce::ignoreUnused (layouts);
@@ -205,7 +205,7 @@ bool ReverberationMachineAudioProcessor::isBusesLayoutSupported (const BusesLayo
 }
 #endif
 
-void ReverberationMachineAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
+void verbMASCHINEAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
 {
     juce::ScopedNoDenormals noDenormals;
     auto totalNumInputChannels  = getTotalNumInputChannels();
@@ -459,7 +459,7 @@ void ReverberationMachineAudioProcessor::processBlock (juce::AudioBuffer<float>&
     measureLevels(bypassBuffer, buffer);
 }
 
-void ReverberationMachineAudioProcessor::measureLevels(const juce::AudioBuffer<float>& inputBuffer,
+void verbMASCHINEAudioProcessor::measureLevels(const juce::AudioBuffer<float>& inputBuffer,
                                                        const juce::AudioBuffer<float>& outputBuffer)
 {
     const int numSamples = inputBuffer.getNumSamples();
@@ -479,23 +479,23 @@ void ReverberationMachineAudioProcessor::measureLevels(const juce::AudioBuffer<f
 }
 
 //==============================================================================
-bool ReverberationMachineAudioProcessor::hasEditor() const
+bool verbMASCHINEAudioProcessor::hasEditor() const
 {
     return true; // (change this to false if you choose to not supply an editor)
 }
 
-juce::AudioProcessorEditor* ReverberationMachineAudioProcessor::createEditor()
+juce::AudioProcessorEditor* verbMASCHINEAudioProcessor::createEditor()
 {
-    return new ReverberationMachineAudioProcessorEditor (*this);
+    return new verbMASCHINEAudioProcessorEditor (*this);
 }
 
 //==============================================================================
-void ReverberationMachineAudioProcessor::getStateInformation (juce::MemoryBlock& destData)
+void verbMASCHINEAudioProcessor::getStateInformation (juce::MemoryBlock& destData)
 {
     copyXmlToBinary(*apvts.copyState().createXml(), destData);
 }
 
-void ReverberationMachineAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
+void verbMASCHINEAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
 {
     std::unique_ptr<juce::XmlElement> xmlState(getXmlFromBinary(data, sizeInBytes));
     
@@ -509,10 +509,10 @@ void ReverberationMachineAudioProcessor::setStateInformation (const void* data, 
 // This creates new instances of the plugin..
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
 {
-    return new ReverberationMachineAudioProcessor();
+    return new verbMASCHINEAudioProcessor();
 }
 
-void ReverberationMachineAudioProcessor::updateTiltEQ()
+void verbMASCHINEAudioProcessor::updateTiltEQ()
 {
     float tilt = apvts.getRawParameterValue("DARK_LIGHT")->load();
     tilt = juce::jlimit(-1.0f, 1.0f, tilt);

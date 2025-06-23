@@ -21,8 +21,10 @@ namespace CustomColours
     static const juce::Colour lightGrey = juce::Colour::fromRGB(200, 200, 190);
     static const juce::Colour superGrey = juce::Colour::fromRGB(220, 220, 220);
     static const juce::Colour lightBeige = juce::Colour::fromRGB(250, 255, 220);
-    static const juce::Colour aqua = juce::Colour::fromRGB(0, 200, 200);
-    static const juce::Colour green = juce::Colour::fromRGB(0, 205, 0);
+    static const juce::Colour aqua = juce::Colour::fromRGB(0, 220, 220);
+    static const juce::Colour blue = juce::Colour::fromRGB(50, 50, 150);
+    static const juce::Colour darkGreen = juce::Colour::fromRGB(0, 150, 0);
+    static const juce::Colour green = juce::Colour::fromRGB(0, 250, 0);
     static const juce::Colour red = juce::Colour::fromRGB(230, 0, 0);
 }
 
@@ -97,7 +99,7 @@ public:
             
             if(leftLabel.isNotEmpty() && rightLabel.isNotEmpty())
             {
-                float labelR = radius + 18.0f;
+                float labelR = radius + 20.0f;
                 auto posL = center.getPointOnCircumference(labelR, rotaryStart + 0.2f);
                 auto posR = center.getPointOnCircumference(labelR, rotaryEnd - 0.2f);
                 
@@ -141,7 +143,7 @@ public:
         float verb = juce::jlimit(0.0f, 1.0f, getVerb());
 
         float baseWidth = bounds.getWidth();
-        float maxHeight = bounds.getHeight() * 0.5f;
+        float maxHeight = bounds.getHeight() * 0.65f;
         float fillHeight = gain * maxHeight;
 
         float centerX = bounds.getCentreX();
@@ -309,8 +311,12 @@ private:
         g.setColour(CustomColours::lightGrey);
         g.fillRect(area);
         
-        const float fillWidth = area.getWidth() * level;
-        g.setColour(CustomColours::green);
+        const float shapedLevel = std::pow(level, 0.33f);
+        const float fillWidth = area.getWidth() * shapedLevel;
+        
+        auto greenGradient = juce::ColourGradient::horizontal(CustomColours::darkGreen, CustomColours::green, area);
+
+        g.setGradientFill(greenGradient);
         g.fillRect(area.withWidth(fillWidth));
         
         if(clipOpacity > 0.0f)
@@ -357,7 +363,9 @@ public:
         float fillRatio = juce::jlimit(0.0f, 1.0f, decayShape(level));
         float fillWidth = area.getWidth() * fillRatio;
         
-        g.setColour(CustomColours::aqua);
+        auto aquaGradient = juce::ColourGradient::horizontal(CustomColours::blue, CustomColours::aqua, area);
+
+        g.setGradientFill(aquaGradient);
         g.fillRect(area.removeFromLeft(fillWidth));
     }
     
@@ -374,12 +382,12 @@ private:
     }
 };
 
-class ReverberationMachineAudioProcessorEditor  :   public juce::AudioProcessorEditor,
+class verbMASCHINEAudioProcessorEditor  :   public juce::AudioProcessorEditor,
                                                     private juce::Timer
 {
 public:
-    ReverberationMachineAudioProcessorEditor (ReverberationMachineAudioProcessor&);
-    ~ReverberationMachineAudioProcessorEditor() override;
+    verbMASCHINEAudioProcessorEditor (verbMASCHINEAudioProcessor&);
+    ~verbMASCHINEAudioProcessorEditor() override;
 
     //==============================================================================
     void paint (juce::Graphics&) override;
@@ -389,7 +397,7 @@ public:
     void timerCallback() override;
 
 private:
-    ReverberationMachineAudioProcessor& audioProcessor;
+    verbMASCHINEAudioProcessor& audioProcessor;
     
     CustomKnobLookAndFeel customKnobLookAndFeel;
     
@@ -416,5 +424,5 @@ private:
     float colourBlend = 0.0f;
     bool isAnimating = false;
 
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ReverberationMachineAudioProcessorEditor)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (verbMASCHINEAudioProcessorEditor)
 };
