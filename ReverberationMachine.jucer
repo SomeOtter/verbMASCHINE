@@ -3,14 +3,9 @@
 <JUCERPROJECT id="Q4Z4Wv" name="verbMASCHINE" projectType="audioplug" useAppConfig="0"
               addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1" companyEmail="knuepfer05@icloud.com"
               pluginVST3Category="Reverb" pluginAAXCategory="8" pluginName="verbMASCHINE"
-              companyName="Ok Devices" pluginDesc="Fuzzy ambient reverb" pluginCode="vMAS">
+              companyName="Ok Devices" pluginDesc="Fuzzy ambient reverb" pluginCode="vMAS"
+              pluginFormats="buildAU,buildVST3">
   <MAINGROUP id="Qiatug" name="verbMASCHINE">
-    <GROUP id="{21BFDA2E-E0A9-3DC2-3A6F-4C38F2DB43C3}" name="Resources">
-      <FILE id="BFHlqa" name="KarasumaGothic-Bold.otf" compile="0" resource="1"
-            file="Resources/KarasumaGothic-Bold.otf"/>
-      <FILE id="ziLxw2" name="Rubik80sFade.ttf" compile="0" resource="1"
-            file="Resources/Rubik80sFade.ttf"/>
-    </GROUP>
     <GROUP id="{6C654A1A-BCA7-00F4-A741-250B352C81EA}" name="Source">
       <FILE id="PqliLn" name="CustomKnob.cpp" compile="1" resource="0" file="Source/CustomKnob.cpp"/>
       <FILE id="lcWIik" name="CustomKnob.h" compile="0" resource="0" file="Source/CustomKnob.h"/>
