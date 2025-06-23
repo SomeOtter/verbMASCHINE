@@ -4,7 +4,7 @@
               addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1" companyEmail="knuepfer05@icloud.com"
               pluginVST3Category="Reverb" pluginAAXCategory="8" pluginName="verbMASCHINE"
               companyName="Ok Devices" pluginDesc="Fuzzy ambient reverb" pluginCode="vMAS"
-              pluginFormats="buildAU,buildVST3">
+              pluginFormats="buildAU,buildVST3" pluginAUExportPrefix="verbMASCHINE">
   <MAINGROUP id="Qiatug" name="verbMASCHINE">
     <GROUP id="{6C654A1A-BCA7-00F4-A741-250B352C81EA}" name="Source">
       <FILE id="PqliLn" name="CustomKnob.cpp" compile="1" resource="0" file="Source/CustomKnob.cpp"/>
@@ -46,8 +46,8 @@
   <EXPORTFORMATS>
     <XCODE_MAC targetFolder="Builds/MacOSX">
       <CONFIGURATIONS>
-        <CONFIGURATION isDebug="1" name="Debug" targetName="ReverberationMachine"/>
-        <CONFIGURATION isDebug="0" name="Release" targetName="ReverberationMachine"/>
+        <CONFIGURATION isDebug="1" name="Debug" targetName="verbMASCHINE"/>
+        <CONFIGURATION isDebug="0" name="Release" targetName="verbMASCHINE"/>
       </CONFIGURATIONS>
       <MODULEPATHS>
         <MODULEPATH id="juce_audio_basics" path="../JUCE/modules"/>
