@@ -1,4 +1,4 @@
-#### Installation instructions
+### Installation instructions
 
 #### Downloading plugin
 
@@ -11,7 +11,7 @@ Use macOS pkg for quick installation in AU and vst3 formats. If you are on Windo
 ##### Mac
 
 1. Double click on the downloaded `verbMASCHINE_macOS_Installer.pkg` file.
-2. A dialog will appear saying that Apple could not verify the installer. Make dure you click `Done` not Move to Bin.
+2. A dialog will appear saying that Apple could not verify the installer. Make sure you click `Done` not Move to Bin.
 3. Open `System Settings`. Go to `Privacy & Security and scroll down until you see `"verbMASCHINE_macOS_Installer.pkg" was blocked to protect your Mac."`
 4. Click `Open Anyway`. A dialouge will appear, press `Open Anyway` again.
 5. Enter your password or TouchID.
