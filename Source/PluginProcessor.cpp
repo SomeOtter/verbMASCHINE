@@ -18,7 +18,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout verbMASCHINEAudioProcessor::
     float volDefaultValue = 0.0f;
     
     float volSkewFactor = std::log(0.5f) /
-                            std::log((volDefaultValue - volMinValue) / (volMaxValue - volMinValue));
+                        std::log((volDefaultValue - volMinValue) / (volMaxValue - volMinValue));
     
     layout.push_back(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID("VOL", 1),
         "VOL", juce::NormalisableRange<float>(-48.0, 12.0f, 0.1f, volSkewFactor), 0.0f));

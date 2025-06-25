@@ -81,7 +81,7 @@ verbMASCHINEAudioProcessorEditor::verbMASCHINEAudioProcessorEditor (verbMASCHINE
     volAttachment = std::make_unique<SliderAttachment>(audioProcessor.apvts, "VOL", volKnob);
     gainAttachment = std::make_unique<SliderAttachment>(audioProcessor.apvts, "GAIN", gainKnob);
     verbAttachment = std::make_unique<SliderAttachment>(audioProcessor.apvts, "VERB", verbKnob);
-    darkLightAttachment = std::make_unique<SliderAttachment>(audioProcessor.apvts, "DARK_LIGHT",                                                                                    darkLightKnob);
+    darkLightAttachment = std::make_unique<SliderAttachment>(audioProcessor.apvts, "DARK_LIGHT",                                                                                darkLightKnob);
 }
 
 verbMASCHINEAudioProcessorEditor::~verbMASCHINEAudioProcessorEditor()
