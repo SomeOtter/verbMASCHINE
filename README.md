@@ -6,28 +6,12 @@
 
 ## Install
 
-[Click here](https://github.com/SomeOtter/Dracula-Ableton-Live-12/archive/master.zip) to download the theme as a ZIP file.
+[Click here](https://github.com/SomeOtter/verbMASCHINE/releases/tag/v1.0.0) to download the plugin.
 
 [Click here](./INSTALL.md) for installation instructions.
 
-## Color Palette
+## About
 
-To accomodate Ableton's extensive range of UI elements, this theme uses an extended colour palette derived from the original dracula theme.
+**verbMASCHINE** is a long, looming reverb, coupled with a fuzzy op amp distortion. The reverb is based off of the *BDTR-3 Belton Brick* while the distortion is mimicking the clipping character of a *TLC27M4AIN* op amp. 
 
-## Team
-
-This theme is maintained by the following person(s) and a bunch of [awesome contributors](https://github.com/dracula/abletonlive12/graphs/contributors).
-
-[![SomeOtter](https://avatars.githubusercontent.com/u/180732713?v=4&s=70)](https://github.com/SomeOtter) |
---- |
-[SomeOtter](https://github.com/SomeOtter) |
-
-## Community
-
-- [Twitter](https://twitter.com/draculatheme) - Best for getting updates about themes and new stuff.
-- [GitHub](https://github.com/dracula/dracula-theme/discussions) - Best for asking questions and discussing issues.
-- [Discord](https://draculatheme.com/discord-invite) - Best for hanging out with the community.
-
-## License
-
-[MIT License](./LICENSE)
+**verbMASCHINE** is inspired by the Death By Audio [Reverberation Machine](https://deathbyaudio.com/products/reverberation-machine) but is in no way a hardware clone or emulation. 
